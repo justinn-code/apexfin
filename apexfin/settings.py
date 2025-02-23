@@ -10,12 +10,12 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-m^cf(r(0gg$4o3#mpywh$ok9wg-(7w&avj(=rt$_kekunqd)^n"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ["apexfin.onrender.com", "127.0.0.1"]
+ALLOWED_HOSTS = ["apexfin.onrender.com", "127.0.0.1", "localhost"]
 
 # Application definition
 INSTALLED_APPS = [
@@ -63,10 +63,11 @@ WSGI_APPLICATION = "apexfin.wsgi.application"
 DATABASES = {
     "default": dj_database_url.config(
         default=os.getenv("DATABASE_URL"),
-        conn_max_age=600,  # Keeps connections alive for better performance
-        ssl_require=True   # Enforces SSL for a secure connection
+        conn_max_age=600,
+        ssl_require=True  # Force SSL
     )
 }
+
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -90,6 +91,8 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
@@ -97,4 +100,3 @@ STATIC_URL = '/static/'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
