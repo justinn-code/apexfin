@@ -1,0 +1,141 @@
+/* General Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f8f9fa;
+    color: #333;
+}
+
+/* Navbar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #5e2bff;
+    padding: 15px 50px;
+    color: white;
+}
+
+.navbar a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+}
+
+.navbar .btn {
+    background: #ff9800;
+    padding: 8px 15px;
+    border-radius: 5px;
+    color: white;
+    transition: 0.3s;
+}
+
+.navbar .btn:hover {
+    background: #e68900;
+}
+
+/* Hero Section */
+.hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 80px;
+    background: linear-gradient(135deg, #5e2bff, #b388ff);
+    color: white;
+    text-align: left;
+}
+
+.hero img {
+    width: 400px;
+}
+
+.hero .btn {
+    background: white;
+    color: #5e2bff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.hero .btn:hover {
+    background: #ff9800;
+    color: white;
+}
+
+/* Features Section */
+.features {
+    display: flex;
+    justify-content: space-around;
+    padding: 50px;
+}
+
+.feature {
+    text-align: center;
+    width: 30%;
+}
+
+.feature img {
+    width: 80px;
+}
+
+/* Testimonials */
+.testimonials {
+    background: #f3f3f3;
+    padding: 50px;
+    text-align: center;
+}
+
+.testimonial {
+    background: white;
+    padding: 20px;
+    margin: 15px;
+    display: inline-block;
+    border-radius: 8px;
+}
+
+/* FAQ */
+.faq {
+    padding: 50px;
+    text-align: center;
+}
+
+.faq-item {
+    margin: 20px auto;
+    width: 70%;
+    background: #5e2bff;
+    padding: 15px;
+    color: white;
+    border-radius: 5px;
+}
+
+/* Pricing */
+.pricing {
+    padding: 50px;
+    text-align: center;
+}
+
+.pricing-card {
+    display: inline-block;
+    width: 30%;
+    background: white;
+    padding: 20px;
+    margin: 15px;
+    border-radius: 8px;
+}
+
+/* CTA */
+.cta {
+    text-align: center;
+    background: #ff9800;
+    color: white;
+    padding: 50px;
+}
+
+.cta .btn {
+    background: white;
+    color: #ff9800;
+    padding: 10px 20px;
+    border-radius: 5px;
+}

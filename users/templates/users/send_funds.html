@@ -1,0 +1,57 @@
+{% extends "users/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Send Funds</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if transaction_count >= 3 and not cooldown_expired %}
+        <div class="alert alert-warning">
+            <strong>Capital funds exceed!</strong> You have reached the transaction limit.<br>
+            <strong>Cooldown Period:</strong> You must wait {{ cooldown_remaining|floatformat:0 }} seconds 
+            
+            {% with cooldown_remaining|divisibleby:3600 as hours %}
+                {% with cooldown_remaining|divisibleby:60 as minutes %}
+                    (<b>{{ hours }}h {{ minutes|slice:"1:" }}m</b>)
+                {% endwith %}
+            {% endwith %}
+            
+            before sending funds.
+        </div>
+    {% elif cooldown_expired %}
+        <div class="alert alert-danger">
+            <strong>Activation Required!</strong> Your cooldown has expired. You must activate <b>ApexFin Coin</b> before sending funds again.
+            <br>
+            <a href="{% url 'users:activate_apexfin_coin' %}" class="btn btn-primary mt-3">Activate ApexFin Coin</a>
+        </div>
+    {% else %}
+        <form method="post" action="{% url 'users:send_funds' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="recipient_name" class="form-label">Recipient Name</label>
+                <input type="text" class="form-control" id="recipient_name" name="recipient_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="recipient_account" class="form-label">Recipient Account Number</label>
+                <input type="text" class="form-control" id="recipient_account" name="recipient_account" required>
+            </div>
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount (USD)</label>
+                <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+            </div>
+            <div class="mb-3">
+                <label for="narration" class="form-label">Narration (Optional)</label>
+                <input type="text" class="form-control" id="narration" name="narration">
+            </div>
+            <button type="submit" class="btn btn-primary">Send Funds</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

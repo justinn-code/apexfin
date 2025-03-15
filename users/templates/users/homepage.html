@@ -1,10 +1,116 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Welcome to ApexFin Analytics</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ApexFin Analytics - Smart Investing</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/scrollreveal/4.0.9/scrollreveal.min.js"></script>
 </head>
 <body>
-    <h1>Welcome to ApexFin Analytics</h1>
-    <p><a href="{% url 'dashboard' %}">Go to Dashboard</a></p>
+
+<header class="navbar">
+    <div class="logo">ApexFin Analytics</div>
+    <nav>
+        <a href="#">Home</a>
+        <a href="#">About</a>
+        <a href="#">Pricing</a>
+        <a href="#">Contact</a>
+        <a href="/users/login" class="btn">Get Started</a>
+    </nav>
+</header>
+
+<!-- Hero Section -->
+<section class="hero">
+    <div class="hero-text">
+        <h1>Smart Investing, Made Easy</h1>
+        <p>Grow your wealth with intelligent analytics and automated investments.</p>
+        <a href="/users/signup" class="btn">Start Investing</a>
+    </div>
+    <img src="/static/images/hero-image.png" alt="Investment Illustration">
+</section>
+
+<!-- Features Section -->
+<section class="features">
+    <div class="feature">
+        <img src="/static/images/data-analysis.png" alt="Analytics">
+        <h3>Data-Driven Insights</h3>
+        <p>Make informed decisions with AI-powered financial insights.</p>
+    </div>
+    <div class="feature">
+        <img src="/static/images/secure.png" alt="Security">
+        <h3>Secure Transactions</h3>
+        <p>Military-grade encryption ensures your funds are safe.</p>
+    </div>
+    <div class="feature">
+        <img src="/static/images/profits.png" alt="Profits">
+        <h3>Maximize Profits</h3>
+        <p>Automated investment strategies for optimal returns.</p>
+    </div>
+</section>
+
+<!-- New Testimonials Section -->
+<section class="testimonials">
+    <h2>What Our Users Say</h2>
+    <div class="testimonial">
+        <p>“ApexFin transformed my investments. The AI-powered insights are a game changer!”</p>
+        <h4>- James O.</h4>
+    </div>
+    <div class="testimonial">
+        <p>“I love the seamless experience and the security of my transactions. 10/10!”</p>
+        <h4>- Sarah K.</h4>
+    </div>
+</section>
+
+<!-- New FAQ Section -->
+<section class="faq">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-item">
+        <h3>How does ApexFin Analytics work?</h3>
+        <p>We use AI-driven insights to optimize your investments for the best returns.</p>
+    </div>
+    <div class="faq-item">
+        <h3>Is my money safe?</h3>
+        <p>Yes, we use military-grade encryption and secure transactions.</p>
+    </div>
+</section>
+
+<!-- Pricing Section -->
+<section class="pricing">
+    <h2>Simple, Transparent Pricing</h2>
+    <div class="pricing-card">
+        <h3>Basic Plan</h3>
+        <p>1% activation fee</p>
+        <a href="#" class="btn">Get Started</a>
+    </div>
+    <div class="pricing-card">
+        <h3>Premium Plan</h3>
+        <p>Unlock advanced analytics</p>
+        <a href="#" class="btn">Upgrade</a>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta">
+    <h2>Start Investing Today</h2>
+    <p>Join thousands of users maximizing their profits with ApexFin Analytics.</p>
+    <a href="/users/signup" class="btn">Sign Up Now</a>
+</section>
+
+<footer>
+    <p>© 2025 ApexFin Analytics. All rights reserved.</p>
+</footer>
+
+<script>
+    // Scroll Animations
+    ScrollReveal().reveal('.hero-text, .feature, .testimonial, .faq-item, .pricing-card, .cta', { 
+        duration: 1000, 
+        origin: 'bottom', 
+        distance: '50px', 
+        easing: 'ease-in-out', 
+        reset: true 
+    });
+</script>
+
 </body>
 </html>

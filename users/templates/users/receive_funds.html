@@ -1,0 +1,33 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <h2 class="text-2xl font-bold text-center text-gray-800">Receive Funds</h2>
+
+    <div class="bg-white shadow-lg rounded-lg p-6 mt-4 text-center">
+        <p class="text-lg font-semibold">Your Account Number</p>
+        <div class="mt-2 flex justify-center items-center">
+            <input type="text" id="accountNumber" class="border p-2 text-center text-lg font-bold w-64" value="{{ account_number }}" readonly>
+            <button onclick="copyAccountNumber()" class="ml-2 bg-blue-500 text-white px-4 py-2 rounded">Copy</button>
+        </div>
+    </div>
+
+    <!-- Instruction Section -->
+    <div class="mt-6 bg-gray-100 p-4 rounded-lg text-gray-700">
+        <p class="font-semibold">Instructions:</p>
+        <ul class="list-disc list-inside mt-2">
+            <li>Share this account number with anyone sending you money.</li>
+            <li>Funds will be credited instantly upon transfer.</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    function copyAccountNumber() {
+        var copyText = document.getElementById("accountNumber");
+        copyText.select();
+        document.execCommand("copy");
+        alert("Account number copied!");
+    }
+</script>
+{% endblock %}

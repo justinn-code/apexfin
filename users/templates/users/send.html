@@ -1,0 +1,28 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Send Money - ApexFin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm p-4">
+        <h2 class="text-center text-primary">Send Money</h2>
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="recipient_account" class="form-label">Recipient Account:</label>
+                <input type="text" class="form-control" id="recipient_account" name="recipient_account" required>
+            </div>
+            <div class="mb-3">
+                <label for="amount" class="form-label">Amount:</label>
+                <input type="number" class="form-control" id="amount" name="amount" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Send Money</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

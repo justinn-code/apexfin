@@ -1,0 +1,53 @@
+{% extends 'users/base.html' %}
+
+{% block content %}
+<div class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-lg mx-auto bg-white p-8 rounded-2xl shadow-lg">
+        <h2 class="text-2xl font-semibold text-gray-800 text-center">Activate ApexFin Coin</h2>
+        <p class="text-gray-600 text-center mt-2">Pay a 1% activation fee in USDT to continue transactions.</p>
+        <div class="mt-6">
+            <label class="block text-sm font-medium text-gray-700">Activation Fee (USDT)</label>
+            <input type="text" id="activation_fee" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="{{ activation_fee }} USDT" readonly>
+        </div>
+        <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700">Enter USDT Transaction Hash</label>
+            <input type="text" id="usdt_txn_hash" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button id="verify_payment" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg transition">Verify Payment</button>
+        <p id="payment_status" class="mt-4 text-center text-sm"></p>
+    </div>
+</div>
+
+<script>
+    document.getElementById("verify_payment").addEventListener("click", function() {
+        let txnHash = document.getElementById("usdt_txn_hash").value.trim();
+        let statusMessage = document.getElementById("payment_status");
+        if (txnHash === "") {
+            statusMessage.innerHTML = "<span class='text-red-500'>Transaction hash is required.</span>";
+            return;
+        }
+        
+        statusMessage.innerHTML = "<span class='text-blue-500'>Verifying payment...</span>";
+        fetch("{% url 'check_usdt_payment' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ usdt_txn_hash: txnHash, amount: {{ activation_fee }} })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                statusMessage.innerHTML = "<span class='text-green-500'>Payment verified! Redirecting...</span>";
+                setTimeout(() => window.location.href = "{% url 'dashboard' %}", 2000);
+            } else {
+                statusMessage.innerHTML = `<span class='text-red-500'>${data.message}</span>`;
+            }
+        })
+        .catch(error => {
+            statusMessage.innerHTML = "<span class='text-red-500'>Error verifying payment. Try again.</span>";
+        });
+    });
+</script>
+{% endblock %}
