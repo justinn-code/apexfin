@@ -1,4 +1,4 @@
-app = 'apexfin-holy-leaf-5090'
+app = "apexfin-pro"
 primary_region = 'ams'
 console_command = '/code/manage.py shell'
 

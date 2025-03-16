@@ -2,6 +2,7 @@ import os
 import dj_database_url
 from dotenv import load_dotenv
 from pathlib import Path
+import logging
 
 # ✅ Load environment variables
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,8 +13,8 @@ load_dotenv(ENV_PATH)
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = ['127.0.0.1', 'apexfin-holy-leaf-5090.fly.dev']
-CSRF_TRUSTED_ORIGINS = ["https://apexfin-holy-leaf-5090.fly.dev"]
+ALLOWED_HOSTS = ["apexfin-pro.fly.dev", "your-custom-domain.com"]
+CSRF_TRUSTED_ORIGINS = ["https://apexfin-pro.fly.dev"]
 
 # ✅ Secure Session Handling
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
@@ -23,7 +24,10 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ✅ Database Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgres://postgres:Meme2025###@127.0.0.1:5432/apexfin-database")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set in the environment variables.")
+
 DATABASES = {
     "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
 }
@@ -104,6 +108,33 @@ USDT_WALLET_QR = os.getenv("USDT_WALLET_QR", "YOUR_QR_IMAGE_URL_HERE")
 TRONSCAN_API_KEY = os.getenv("TRONSCAN_API_KEY", "2aacf7c1-3e21-4856-91bc-18a8362d64dc")
 TRONSCAN_API_URL = "https://apilist.tronscanapi.com/api/transaction-info"
 
+# ✅ Ensure logs directory exists
+LOGS_DIR = os.path.join(BASE_DIR, "logs")
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
+
+# ✅ Logging Configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "file": {
+            "level": "ERROR",
+            "class": "logging.FileHandler",
+            "filename": os.path.join(LOGS_DIR, "django.log"),
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["file"],
+            "level": "ERROR",
+            "propagate": True,
+        },
+    },
+}
+
 # ✅ Debugging
-print("DEBUG:", DEBUG)
-print("Allowed Hosts:", ALLOWED_HOSTS)
+print(f"DEBUG: {DEBUG}")
+print(f"Allowed Hosts: {ALLOWED_HOSTS}")
+print(f"Database URL: {'Configured' if DATABASE_URL else 'Not Set'}")
+print(f"Logging Directory: {LOGS_DIR}")
