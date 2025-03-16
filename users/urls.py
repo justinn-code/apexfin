@@ -1,8 +1,8 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from . import views  # ✅ Import views module
+from . import views  # Ensure views module is imported
 
-app_name = 'users'  # ✅ Ensure correct namespace
+app_name = 'users'  # Namespace for URL reversing
 
 urlpatterns = [
     # Homepage
@@ -15,7 +15,7 @@ urlpatterns = [
     path("all-users/", views.all_users, name="all_users"),
 
     # Funding Account
-    path("fund-account/", views.fund_account, name="fund_account"),  # ✅ FIXED: Added missing comma
+    path("fund-account/", views.fund_account, name="fund_account"),
 
     # Dashboard
     path('dashboard/', views.dashboard, name='dashboard'),
@@ -33,5 +33,5 @@ urlpatterns = [
     path('logout/', auth_views.LogoutView.as_view(next_page='users:homepage'), name='logout'),
 
     # USDT Payment Verification
-    path('check-usdt-payment/', views.check_usdt_payment, name='check_usdt_payment'),
+    path('check-usdt-payment/', views.verify_usdt_payment, name='check_usdt_payment'),
 ]

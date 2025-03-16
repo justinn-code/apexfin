@@ -6,17 +6,15 @@ from django.http import JsonResponse
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from decimal import Decimal  # ✅ For precise calculations
+from decimal import Decimal
 from .models import UserProfile, Transaction, calculate_investment_profit
 from services.usdt_verification import verify_usdt_payment
 
-# ✅ Homepage View
 def homepage(request):
     if request.user.is_authenticated:
         return redirect('users:dashboard')
     return render(request, 'users/homepage.html')
 
-# ✅ Signup View
 def signup(request):
     if request.method == "POST":
         username = request.POST.get("username")
@@ -36,32 +34,30 @@ def signup(request):
             return redirect("users:signup")
 
         user = User.objects.create_user(username=username, email=email, password=password)
-        UserProfile.objects.create(user=user)  # ✅ Create UserProfile
+        UserProfile.objects.create(user=user)
 
-        login(request, user)  # ✅ Auto-login after signup
+        login(request, user)
         return redirect("users:dashboard")
 
     return render(request, "users/signup.html")
 
-# ✅ Fetch All Users (For Admin)
 @login_required
 def all_users(request):
     users = User.objects.all()
     return render(request, "users/all_users.html", {"users": users})
 
-# ✅ Fund User Account (Admin Only)
 @login_required
 def fund_account(request):
     if request.method == "POST":
-        username = request.POST["username"]
-        amount = request.POST["amount"]
+        username = request.POST.get("username")
+        amount = request.POST.get("amount")
 
         if not username or not amount:
             messages.error(request, "All fields are required.")
             return redirect("users:fund_account")
 
         try:
-            amount = Decimal(amount)  # ✅ Convert to Decimal
+            amount = Decimal(amount)
             if amount <= 0:
                 messages.error(request, "Invalid amount.")
                 return redirect("users:fund_account")
@@ -76,7 +72,6 @@ def fund_account(request):
 
     return render(request, "users/fund_account.html")
 
-# ✅ User Dashboard
 @login_required
 def dashboard(request):
     profile = request.user.userprofile
@@ -111,19 +106,16 @@ def dashboard(request):
     }
     return render(request, 'users/dashboard.html', context)
 
-# ✅ Transaction History
 @login_required
 def transaction_history(request):
     transactions = Transaction.objects.filter(user=request.user).order_by('-timestamp')
     return render(request, 'users/transaction_history.html', {'transactions': transactions})
 
-# ✅ Receive Funds
 @login_required
 def receive_funds(request):
     profile = request.user.userprofile
     return render(request, 'users/receive_funds.html', {'account_number': profile.unique_account_number})
 
-# ✅ USDT Activation Payment
 @login_required
 def activate_apexfin_coin(request):
     profile = request.user.userprofile
@@ -143,7 +135,6 @@ def activate_apexfin_coin(request):
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error', 'message': error_message})
 
-# ✅ Send Funds
 @login_required
 def send_funds(request):
     sender_profile = request.user.userprofile
@@ -166,7 +157,6 @@ def send_funds(request):
             messages.error(request, "Enter a valid numeric amount.")
             return redirect('users:send_funds')
 
-        # Check if sender has enough balance after 3% gas fee
         gas_fee = amount * Decimal(0.03)
         total_deduction = amount + gas_fee
 
@@ -176,68 +166,21 @@ def send_funds(request):
 
         try:
             recipient_profile = UserProfile.objects.get(unique_account_number=recipient_account)
-
-            # Prevent sending to self
             if recipient_profile == sender_profile:
                 messages.error(request, "You cannot send funds to yourself.")
                 return redirect('users:send_funds')
 
-            # Deduct from sender and add to recipient
             sender_profile.balance -= total_deduction
             recipient_profile.balance += amount
             sender_profile.save()
             recipient_profile.save()
 
-            # ✅ Record transaction
-            Transaction.objects.create(
-                user=request.user,
-                sender=sender_profile,
-                receiver=recipient_profile,
-                amount=amount,
-                narration=narration
-            )
+            Transaction.objects.create(user=request.user, sender=sender_profile, receiver=recipient_profile, amount=amount, narration=narration)
 
             messages.success(request, f"Transaction successful! Sent ${amount:.2f} to {recipient_profile.user.username} (Gas Fee: ${gas_fee:.2f}).")
             return redirect("users:dashboard")
-
         except UserProfile.DoesNotExist:
             messages.error(request, "Invalid account number.")
             return redirect('users:send_funds')
 
     return render(request, 'users/send_funds.html')
-
-
-# ✅ Check USDT Payment Status
-@login_required
-def check_usdt_payment(request):
-    txn_hash = request.GET.get("txn_hash")
-    amount = request.GET.get("amount")
-
-    if not txn_hash or not amount:
-        return JsonResponse({"status": "error", "message": "Transaction hash and amount required"})
-
-    try:
-        amount = float(amount)
-    except ValueError:
-        return JsonResponse({"status": "error", "message": "Invalid amount format"})
-
-    success, error_message = verify_usdt_payment(txn_hash, amount)
-
-    if success:
-        return JsonResponse({"status": "success"})
-    return JsonResponse({"status": "error", "message": error_message})
-
-# ✅ Cooldown Status
-@login_required
-def cooldown_status(request):
-    profile = request.user.userprofile
-    if not profile.cooldown_start:
-        return JsonResponse({"status": "expired"})
-
-    cooldown_end = profile.cooldown_start + timedelta(hours=36)
-    cooldown_remaining = (cooldown_end - now()).total_seconds()
-
-    if cooldown_remaining <= 0:
-        return JsonResponse({"status": "expired"})
-
-    return JsonResponse({"status": "active", "remaining_time": cooldown_remaining})

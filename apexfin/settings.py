@@ -11,7 +11,7 @@ load_dotenv(ENV_PATH)
 
 # ✅ Security Keys
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = ["apexfin-pro.fly.dev", "your-custom-domain.com"]
 CSRF_TRUSTED_ORIGINS = ["https://apexfin-pro.fly.dev"]
@@ -23,14 +23,17 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-# ✅ Database Configuration
+# ✅ Database Configuration with Fallback
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL is not set in the environment variables.")
-
-DATABASES = {
-    "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
-}
+if DATABASE_URL:
+    DATABASES = {"default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 # ✅ Login & Logout Redirects
 LOGIN_REDIRECT_URL = "/users/dashboard/"
@@ -49,13 +52,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Must be before other middlewares
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = "apexfin.urls"
@@ -110,8 +113,7 @@ TRONSCAN_API_URL = "https://apilist.tronscanapi.com/api/transaction-info"
 
 # ✅ Ensure logs directory exists
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
-if not os.path.exists(LOGS_DIR):
-    os.makedirs(LOGS_DIR)
+os.makedirs(LOGS_DIR, exist_ok=True)
 
 # ✅ Logging Configuration
 LOGGING = {
@@ -132,9 +134,3 @@ LOGGING = {
         },
     },
 }
-
-# ✅ Debugging
-print(f"DEBUG: {DEBUG}")
-print(f"Allowed Hosts: {ALLOWED_HOSTS}")
-print(f"Database URL: {'Configured' if DATABASE_URL else 'Not Set'}")
-print(f"Logging Directory: {LOGS_DIR}")

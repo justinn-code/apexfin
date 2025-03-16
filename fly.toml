@@ -19,7 +19,7 @@ console_command = '/code/manage.py shell'
   processes = ['app']
 
 [processes]
-  app = "gunicorn apexfin.wsgi --bind 0.0.0.0:8000"
+  app = "gunicorn apexfin.wsgi:application --bind 0.0.0.0:8000"
 
 [[vm]]
   memory = '1gb'
