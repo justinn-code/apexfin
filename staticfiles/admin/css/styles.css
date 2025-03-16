@@ -1,10 +1,11 @@
 /* General Styles */
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Poppins', sans-serif;
     margin: 0;
     padding: 0;
-    background: #f8f9fa;
+    background: #f4f7fc;
     color: #333;
+    line-height: 1.6;
 }
 
 /* Navbar */
@@ -12,23 +13,26 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #5e2bff;
+    background: #4a2bbf;
     padding: 15px 50px;
     color: white;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .navbar a {
     color: white;
     text-decoration: none;
     margin: 0 15px;
+    font-weight: 500;
 }
 
 .navbar .btn {
     background: #ff9800;
-    padding: 8px 15px;
+    padding: 10px 18px;
     border-radius: 5px;
     color: white;
     transition: 0.3s;
+    font-weight: bold;
 }
 
 .navbar .btn:hover {
@@ -41,22 +45,27 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 80px;
-    background: linear-gradient(135deg, #5e2bff, #b388ff);
+    background: linear-gradient(135deg, #4a2bbf, #7a5eff);
     color: white;
     text-align: left;
+    border-radius: 0 0 50px 50px;
 }
 
 .hero img {
     width: 400px;
+    border-radius: 15px;
+    box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .hero .btn {
     background: white;
-    color: #5e2bff;
-    padding: 10px 20px;
-    border-radius: 5px;
+    color: #4a2bbf;
+    padding: 12px 24px;
+    border-radius: 8px;
     font-weight: bold;
     transition: 0.3s;
+    border: none;
+    cursor: pointer;
 }
 
 .hero .btn:hover {
@@ -74,6 +83,15 @@ body {
 .feature {
     text-align: center;
     width: 30%;
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    transition: 0.3s;
+}
+
+.feature:hover {
+    transform: translateY(-5px);
 }
 
 .feature img {
@@ -82,9 +100,10 @@ body {
 
 /* Testimonials */
 .testimonials {
-    background: #f3f3f3;
+    background: #eef1f7;
     padding: 50px;
     text-align: center;
+    border-radius: 50px;
 }
 
 .testimonial {
@@ -92,7 +111,8 @@ body {
     padding: 20px;
     margin: 15px;
     display: inline-block;
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* FAQ */
@@ -104,10 +124,16 @@ body {
 .faq-item {
     margin: 20px auto;
     width: 70%;
-    background: #5e2bff;
-    padding: 15px;
+    background: #4a2bbf;
+    padding: 18px;
     color: white;
-    border-radius: 5px;
+    border-radius: 10px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.faq-item:hover {
+    background: #3720a3;
 }
 
 /* Pricing */
@@ -120,9 +146,10 @@ body {
     display: inline-block;
     width: 30%;
     background: white;
-    padding: 20px;
+    padding: 25px;
     margin: 15px;
-    border-radius: 8px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* CTA */
@@ -131,11 +158,20 @@ body {
     background: #ff9800;
     color: white;
     padding: 50px;
+    border-radius: 50px;
 }
 
 .cta .btn {
     background: white;
     color: #ff9800;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.cta .btn:hover {
+    background: #f4f4f4;
 }

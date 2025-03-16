@@ -5,24 +5,28 @@ from pathlib import Path
 
 # ✅ Load environment variables
 BASE_DIR = Path(__file__).resolve().parent.parent
-ENV_PATH = os.path.join(BASE_DIR, ".env")  
-load_dotenv(ENV_PATH)  
-
-# ✅ Database Configuration
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    DATABASE_URL = "postgres://postgres:Meme2025###@127.0.0.1:5432/apexfin-database"
-
-DATABASES = {
-    "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
-}
+ENV_PATH = os.path.join(BASE_DIR, ".env")
+load_dotenv(ENV_PATH)
 
 # ✅ Security Keys
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "fallback-secret-key")
 DEBUG = os.getenv("DEBUG", "False") == "True"
-ALLOWED_HOSTS = ['127.0.0.1', 'apexfin-holy-leaf-5090.fly.dev']
 
+ALLOWED_HOSTS = ['127.0.0.1', 'apexfin-holy-leaf-5090.fly.dev']
 CSRF_TRUSTED_ORIGINS = ["https://apexfin-holy-leaf-5090.fly.dev"]
+
+# ✅ Secure Session Handling
+SESSION_ENGINE = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_SECURE = not DEBUG  # Secure in production
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ✅ Database Configuration
+DATABASE_URL = os.getenv("DATABASE_URL", "postgres://postgres:Meme2025###@127.0.0.1:5432/apexfin-database")
+DATABASES = {
+    "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=600)
+}
 
 # ✅ Login & Logout Redirects
 LOGIN_REDIRECT_URL = "/users/dashboard/"
@@ -41,13 +45,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = "apexfin.urls"
@@ -56,7 +60,7 @@ ROOT_URLCONF = "apexfin.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [os.path.join(BASE_DIR, "templates")],  # Allow all templates
+        "DIRS": [os.path.join(BASE_DIR, "templates")],  # Ensure templates load properly
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -88,7 +92,7 @@ USE_TZ = True
 # ✅ Static Files
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]  # Ensure static folder exists
+STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 

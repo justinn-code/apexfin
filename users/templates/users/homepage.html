@@ -3,114 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ApexFin Analytics - Smart Investing</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/scrollreveal/4.0.9/scrollreveal.min.js"></script>
+    <title>ApexFin Analytics - Smart Financial Investments</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
-
-<header class="navbar">
-    <div class="logo">ApexFin Analytics</div>
-    <nav>
-        <a href="#">Home</a>
-        <a href="#">About</a>
-        <a href="#">Pricing</a>
-        <a href="#">Contact</a>
-        <a href="/users/login" class="btn">Get Started</a>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">ApexFin Analytics</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                </ul>
+            </div>
+        </div>
     </nav>
-</header>
 
-<!-- Hero Section -->
-<section class="hero">
-    <div class="hero-text">
-        <h1>Smart Investing, Made Easy</h1>
-        <p>Grow your wealth with intelligent analytics and automated investments.</p>
-        <a href="/users/signup" class="btn">Start Investing</a>
-    </div>
-    <img src="/static/images/hero-image.png" alt="Investment Illustration">
-</section>
+    <header class="hero text-center text-white d-flex flex-column justify-content-center align-items-center">
+        <div class="container">
+            <h1 class="display-4">Invest Smart, Grow Your Wealth</h1>
+            <p class="lead">ApexFin Analytics provides cutting-edge financial insights and investment opportunities.</p>
+            <a href="/register" class="btn btn-lg btn-light mt-3">Get Started</a>
+        </div>
+    </header>
 
-<!-- Features Section -->
-<section class="features">
-    <div class="feature">
-        <img src="/static/images/data-analysis.png" alt="Analytics">
-        <h3>Data-Driven Insights</h3>
-        <p>Make informed decisions with AI-powered financial insights.</p>
-    </div>
-    <div class="feature">
-        <img src="/static/images/secure.png" alt="Security">
-        <h3>Secure Transactions</h3>
-        <p>Military-grade encryption ensures your funds are safe.</p>
-    </div>
-    <div class="feature">
-        <img src="/static/images/profits.png" alt="Profits">
-        <h3>Maximize Profits</h3>
-        <p>Automated investment strategies for optimal returns.</p>
-    </div>
-</section>
+    <section id="about" class="py-5 text-center">
+        <div class="container">
+            <h2>Why Choose ApexFin Analytics?</h2>
+            <p class="lead">We provide advanced financial analytics, real-time investment tracking, and automated growth strategies.</p>
+        </div>
+    </section>
 
-<!-- New Testimonials Section -->
-<section class="testimonials">
-    <h2>What Our Users Say</h2>
-    <div class="testimonial">
-        <p>“ApexFin transformed my investments. The AI-powered insights are a game changer!”</p>
-        <h4>- James O.</h4>
-    </div>
-    <div class="testimonial">
-        <p>“I love the seamless experience and the security of my transactions. 10/10!”</p>
-        <h4>- Sarah K.</h4>
-    </div>
-</section>
+    <section id="features" class="bg-light py-5 text-center">
+        <div class="container">
+            <h2>Our Key Features</h2>
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <h4>Real-Time Market Insights</h4>
+                    <p>Stay updated with live financial data and smart analytics.</p>
+                </div>
+                <div class="col-md-4">
+                    <h4>Secure Transactions</h4>
+                    <p>Advanced security protocols ensure your investments are safe.</p>
+                </div>
+                <div class="col-md-4">
+                    <h4>Automated Investment Strategies</h4>
+                    <p>Let AI handle your investments for maximum returns.</p>
+                </div>
+            </div>
+        </div>
+    </section>
 
-<!-- New FAQ Section -->
-<section class="faq">
-    <h2>Frequently Asked Questions</h2>
-    <div class="faq-item">
-        <h3>How does ApexFin Analytics work?</h3>
-        <p>We use AI-driven insights to optimize your investments for the best returns.</p>
-    </div>
-    <div class="faq-item">
-        <h3>Is my money safe?</h3>
-        <p>Yes, we use military-grade encryption and secure transactions.</p>
-    </div>
-</section>
+    <section id="pricing" class="py-5 text-center">
+        <div class="container">
+            <h2>Pricing Plans</h2>
+            <p class="lead">Choose a plan that fits your investment goals.</p>
+        </div>
+    </section>
 
-<!-- Pricing Section -->
-<section class="pricing">
-    <h2>Simple, Transparent Pricing</h2>
-    <div class="pricing-card">
-        <h3>Basic Plan</h3>
-        <p>1% activation fee</p>
-        <a href="#" class="btn">Get Started</a>
-    </div>
-    <div class="pricing-card">
-        <h3>Premium Plan</h3>
-        <p>Unlock advanced analytics</p>
-        <a href="#" class="btn">Upgrade</a>
-    </div>
-</section>
+    <section id="contact" class="bg-light py-5 text-center">
+        <div class="container">
+            <h2>Contact Us</h2>
+            <p class="lead">Have questions? Reach out to our support team.</p>
+        </div>
+    </section>
 
-<!-- Call to Action Section -->
-<section class="cta">
-    <h2>Start Investing Today</h2>
-    <p>Join thousands of users maximizing their profits with ApexFin Analytics.</p>
-    <a href="/users/signup" class="btn">Sign Up Now</a>
-</section>
+    <footer class="bg-primary text-white text-center py-3">
+        <p>&copy; 2025 ApexFin Analytics. All rights reserved.</p>
+    </footer>
 
-<footer>
-    <p>© 2025 ApexFin Analytics. All rights reserved.</p>
-</footer>
-
-<script>
-    // Scroll Animations
-    ScrollReveal().reveal('.hero-text, .feature, .testimonial, .faq-item, .pricing-card, .cta', { 
-        duration: 1000, 
-        origin: 'bottom', 
-        distance: '50px', 
-        easing: 'ease-in-out', 
-        reset: true 
-    });
-</script>
-
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .hero {
+            height: 90vh;
+            background: linear-gradient(rgba(0, 0, 50, 0.7), rgba(0, 0, 50, 0.7)), url('https://source.unsplash.com/1600x900/?finance,investment');
+            background-size: cover;
+            background-position: center;
+        }
+        .hero h1 {
+            font-weight: bold;
+        }
+        .hero p {
+            font-size: 1.2rem;
+        }
+        .btn-light {
+            font-weight: bold;
+        }
+    </style>
 </body>
 </html>

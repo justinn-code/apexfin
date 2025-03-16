@@ -83,6 +83,7 @@ def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user).order_by('-timestamp')
     investment_profit = calculate_investment_profit(request.user)
     transaction_count = transactions.count()
+
     cooldown_expired = True
     cooldown_remaining = 0
     activation_required = False
@@ -92,7 +93,7 @@ def dashboard(request):
             profile.cooldown_start = now()
             profile.save()
         cooldown_end = profile.cooldown_start + timedelta(hours=36)
-        cooldown_remaining = (cooldown_end - now()).total_seconds()
+        cooldown_remaining = max(0, (cooldown_end - now()).total_seconds())
         cooldown_expired = cooldown_remaining <= 0
         activation_required = cooldown_expired
 
@@ -157,7 +158,7 @@ def send_funds(request):
             return redirect('users:send_funds')
 
         try:
-            amount = Decimal(amount)  # Convert amount to Decimal
+            amount = Decimal(amount)
             if amount <= 0:
                 messages.error(request, "Invalid amount.")
                 return redirect('users:send_funds')
@@ -165,30 +166,38 @@ def send_funds(request):
             messages.error(request, "Enter a valid numeric amount.")
             return redirect('users:send_funds')
 
-        # Check if sender has enough balance
-        if sender_profile.balance < amount:
-            messages.error(request, "Insufficient balance.")
+        # Check if sender has enough balance after 3% gas fee
+        gas_fee = amount * Decimal(0.03)
+        total_deduction = amount + gas_fee
+
+        if sender_profile.balance < total_deduction:
+            messages.error(request, f"Insufficient balance. A 3% gas fee applies (${gas_fee:.2f}).")
             return redirect('users:send_funds')
 
         try:
             recipient_profile = UserProfile.objects.get(unique_account_number=recipient_account)
 
+            # Prevent sending to self
+            if recipient_profile == sender_profile:
+                messages.error(request, "You cannot send funds to yourself.")
+                return redirect('users:send_funds')
+
             # Deduct from sender and add to recipient
-            sender_profile.balance -= amount
+            sender_profile.balance -= total_deduction
             recipient_profile.balance += amount
             sender_profile.save()
             recipient_profile.save()
 
-            # ✅ Fix sender/receiver fields
+            # ✅ Record transaction
             Transaction.objects.create(
-                user=request.user,  # Link transaction to the sender user
-                sender=sender_profile,  # Save sender profile
-                receiver=recipient_profile,  # Save receiver profile
+                user=request.user,
+                sender=sender_profile,
+                receiver=recipient_profile,
                 amount=amount,
                 narration=narration
             )
 
-            messages.success(request, f"Transaction successful! Sent ${amount} to {recipient_profile.user.username}.")
+            messages.success(request, f"Transaction successful! Sent ${amount:.2f} to {recipient_profile.user.username} (Gas Fee: ${gas_fee:.2f}).")
             return redirect("users:dashboard")
 
         except UserProfile.DoesNotExist:
@@ -196,6 +205,7 @@ def send_funds(request):
             return redirect('users:send_funds')
 
     return render(request, 'users/send_funds.html')
+
 
 # ✅ Check USDT Payment Status
 @login_required
