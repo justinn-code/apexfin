@@ -24,6 +24,7 @@ from django.views.decorators.csrf import csrf_exempt, csrf_protect  # ✅ Import
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
 from .models import UserLocation
+from .utils import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +70,24 @@ def logout_view(request):
 #---------------------Dashboard View-------------------
 @login_required
 def dashboard(request):
-    # Remove track_user_location if you don't want to collect location data
+    # ✅ Optional: IPStack Location Tracking
+    ipstack_key = getattr(settings, 'IPSTACK_API_KEY', None)
+    if ipstack_key:
+        try:
+            ip = get_client_ip(request)
+            url = f"http://api.ipstack.com/{ip}?access_key={ipstack_key}"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                location_data = response.json()
+                UserLocation.objects.create(
+                    user=request.user,
+                    ip_address=ip,
+                    location=location_data.get('city', 'Unknown')
+                )
+        except Exception as e:
+            print("IPStack location fetch failed:", str(e))
 
-    # Get transactions and other profile data
+    # 🧾 Get transactions and profile
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     transactions = Transaction.objects.filter(
         Q(sender_account=profile.unique_account_number) |
@@ -104,7 +120,6 @@ def dashboard(request):
                     counterparty_name = "Unknown"
                 counterparty_account = transaction.sender_account
 
-            # Add to transaction list with counterparty info
             unique_transactions.append({
                 'direction': direction,
                 'amount': transaction.amount,
@@ -124,7 +139,6 @@ def dashboard(request):
     }
 
     return render(request, 'users/dashboard.html', context)
-
 # -------------------- Fund Account --------------------
 @login_required
 def fund_account(request):
