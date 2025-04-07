@@ -70,23 +70,6 @@ def logout_view(request):
 #---------------------Dashboard View-------------------
 @login_required
 def dashboard(request):
-    # ✅ Optional: IPStack Location Tracking
-    ipstack_key = getattr(settings, 'IPSTACK_API_KEY', None)
-    if ipstack_key:
-        try:
-            ip = get_client_ip(request)
-            url = f"http://api.ipstack.com/{ip}?access_key={ipstack_key}"
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                location_data = response.json()
-                UserLocation.objects.create(
-                    user=request.user,
-                    ip_address=ip,
-                    location=location_data.get('city', 'Unknown')
-                )
-        except Exception as e:
-            print("IPStack location fetch failed:", str(e))
-
     # 🧾 Get transactions and profile
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     transactions = Transaction.objects.filter(
@@ -139,6 +122,7 @@ def dashboard(request):
     }
 
     return render(request, 'users/dashboard.html', context)
+
 # -------------------- Fund Account --------------------
 @login_required
 def fund_account(request):
@@ -448,51 +432,3 @@ def cooldown_message(request):
     profile = UserProfile.objects.get(user=request.user)
     cooldown_remaining = (profile.cooldown_start + timedelta(hours=36) - now()).total_seconds() // 3600 if profile.cooldown_start else 0
     return render(request, 'users/cooldown_message.html', {'cooldown_remaining': cooldown_remaining})
-#---------------------Tracker_ip-----------------------------
-@login_required
-def track_user_location(request):
-    # Get the user's IP address
-    ip_address = request.META.get('REMOTE_ADDR')
-    
-    # Use ipstack API to get the location information
-    api_url = f"http://api.ipstack.com/{ip_address}?access_key={settings.IPSTACK_API_KEY}"
-    response = requests.get(api_url)
-    
-    if response.status_code == 200:
-        location_data = response.json()
-        country = location_data.get('country_name')
-        city = location_data.get('city')
-        region = location_data.get('region_name')
-
-        # Store the location info in the database
-        UserLocation.objects.create(
-            ip_address=ip_address,
-            country=country,
-            city=city,
-            region=region,
-            timestamp=timezone.now(),
-        )
-
-def dashboard(request):
-    # Track user location
-    track_user_location(request)
-
-    # Get the most recent location for the user
-    user_location = UserLocation.objects.filter(ip_address=request.META.get('REMOTE_ADDR')).order_by('-timestamp').first()
-
-    # Pass the location data to the template
-    context = {
-        'user': request.user,
-        'account_number': '12345',  # Example data
-        'balance': 1000,  # Example data
-        'investment_profit': 200,  # Example data
-        'in_cooldown': False,  # Example data
-        'cooldown_end': '2025-04-10 10:00:00',  # Example data
-        'user_profile': request.user.profile,  # Example user profile data
-        'activation_fee': 10,  # Example data
-        'conversion_fee': 15,  # Example data
-        'requires_conversion': True,  # Example data
-        'user_location': user_location,  # Pass the location to template
-    }
-
-    return render(request, 'dashboard.html', context)

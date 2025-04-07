@@ -154,13 +154,3 @@ class Transaction(models.Model):
         else:
             return self.sender_account  # Account number of the sender if the user is the recipient
 
-class UserLocation(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    ip_address = models.GenericIPAddressField()
-    country = models.CharField(max_length=100, null=True, blank=True)
-    city = models.CharField(max_length=100, null=True, blank=True)
-    region = models.CharField(max_length=100, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.city}, {self.country} - {self.timestamp}"

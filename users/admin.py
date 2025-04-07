@@ -8,6 +8,6 @@ class TransactionAdmin(admin.ModelAdmin):
 
 admin.site.register(UserProfile)
 admin.site.register(Transaction, TransactionAdmin)
-admin.site.register(UserLocation)
+
 
 # Register your models here.

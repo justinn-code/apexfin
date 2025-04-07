@@ -22,7 +22,7 @@ CSRF_COOKIE_SECURE = not DEBUG
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
-IPSTACK_API_KEY = os.getenv('IPSTACK_API_KEY')
+
 
 # ✅ Database Configuration using DATABASE_URL from .env
 DATABASES = {
