@@ -138,6 +138,7 @@
           <th>Counterparty</th>
           <th>Narration</th>
           <th>Status</th>
+          <th>Balance After</th>
         </tr>
       </thead>
       <tbody>
@@ -145,14 +146,15 @@
           <tr>
             <td>{{ txn.timestamp|date:"F j, Y, g:i a" }}</td>
             <td><span class="transaction-type">{{ txn.label }}</span></td>
-            <td>₦{{ txn.amount }}</td>
+            <td>${{ txn.amount }}</td>
             <td>{{ txn.counterparty }}</td>
             <td>{{ txn.narration|default:"—" }}</td>
             <td class="status-{{ txn.status }}">{{ txn.status }}</td>
+            <td>${{ txn.balance_after }}</td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="6" style="text-align:center; color: #888;">No transactions found.</td>
+            <td colspan="7" style="text-align:center; color: #888;">No transactions found.</td>
           </tr>
         {% endfor %}
       </tbody>
@@ -163,13 +165,14 @@
   <div class="card-container">
     {% for txn in transaction_history %}
       <div class="txn-card">
-        <div class="txn-label">{{ txn.label }} — ₦{{ txn.amount }}</div>
+        <div class="txn-label">{{ txn.label }} — ${{ txn.amount }}</div>
         <div><strong>With:</strong> {{ txn.counterparty }}</div>
         {% if txn.narration %}
           <div class="txn-note"><strong>Note:</strong> {{ txn.narration }}</div>
         {% endif %}
         <div class="txn-date">{{ txn.timestamp|date:"M d, Y · h:i A" }}</div>
         <div class="txn-note" style="color: {% if txn.status == 'Success' %}#28a745{% else %}#e74c3c{% endif %};"><strong>Status:</strong> {{ txn.status }}</div>
+        <div class="txn-note"><strong>Balance After:</strong> ${{ txn.balance_after }}</div>
       </div>
     {% empty %}
       <p class="no-txn">No transactions found.</p>
@@ -177,4 +180,3 @@
   </div>
 </body>
 </html>
-

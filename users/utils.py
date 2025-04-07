@@ -18,32 +18,3 @@ def verify_usdt_payment(transaction_id, expected_amount):
         print(f"Error verifying payment: {e}")
 
     return False
-
-# utils.py
-def get_client_ip(request):
-    """
-    Get the user's real IP address, considering proxies or load balancers.
-    """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
-
-def get_geolocation(ip):
-    """
-    Get the geolocation info (country, city, region) for the given IP address.
-    """
-    access_key = '26cdc8ba0897b3f6e65bd107ee7b7ab0'  # Your ipstack API key
-    url = f"http://api.ipstack.com/{ip}?access_key={access_key}"
-    response = requests.get(url)
-    data = response.json()
-
-    # Return geolocation info as a dictionary
-    return {
-        'country': data.get('country_name'),
-        'city': data.get('city'),
-        'region': data.get('region_name'),
-        'ip': ip  # Optionally store the IP as well for tracking purposes
-    }

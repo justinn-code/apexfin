@@ -23,8 +23,6 @@ from .forms import SignUpForm
 from django.views.decorators.csrf import csrf_exempt, csrf_protect  # ✅ Import both
 from django.shortcuts import render, redirect, get_object_or_404
 from django.db import models
-from .models import UserLocation
-from .utils import get_client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -231,8 +229,9 @@ def send_funds(request):
                     amount=amount,
                     narration=narration,
                     timestamp=timezone.now(),
-                    transaction_type="debit",
+                    transaction_type="Sent",
                     status="completed",
+                    balance_after=sender_profile.balance,
                 )
 
                 # Recipient's transaction record (Credited)
@@ -245,8 +244,9 @@ def send_funds(request):
                     amount=amount,
                     narration=narration,
                     timestamp=timezone.now(),
-                    transaction_type="credit",
+                    transaction_type="Received",
                     status="completed",
+                    balance_after=recipient_profile.balance,
                 )
 
                 # If 3 debit transactions are completed, start cooldown
@@ -345,27 +345,26 @@ def transaction_history(request):
     user = request.user
     transactions = Transaction.objects.filter(user=user).order_by('-timestamp')
 
-    transaction_history = []
+    history = []
     for txn in transactions:
-        label = txn.transaction_type  # 'Sent' or 'Received'
+        if txn.transaction_type == 'Sent':
+            label = 'Sent'
+            counterparty = f"{txn.recipient_name} ({txn.recipient_account})"
+        else:  # Received
+            label = 'Received'
+            counterparty = f"{txn.sender_name} ({txn.sender_account})"
 
-        if label == "Sent":
-            counterparty = txn.recipient_name or txn.recipient_account
-        else:
-            counterparty = txn.sender_name or txn.sender_account
-
-        transaction_history.append({
-            'label': label,
-            'counterparty': counterparty,
-            'amount': txn.amount,
-            'narration': txn.narration,
+        history.append({
             'timestamp': txn.timestamp,
-            'status': txn.status
+            'label': label,
+            'amount': txn.amount,
+            'counterparty': counterparty,
+            'narration': txn.narration,
+            'status': 'Success' if txn.status == 'completed' else 'Failed'
+            'balance_after': txn.balance_after,
         })
 
-    return render(request, 'users/transaction_history.html', {
-        'transaction_history': transaction_history
-    })
+    return render(request, 'users/transaction_history.html', {'transaction_history': history})
 
 #---------------------Verification USDT payment------------
 def check_usdt_payment(user, gas_fee, transaction_id):

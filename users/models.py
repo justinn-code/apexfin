@@ -94,6 +94,7 @@ class Transaction(models.Model):
     narration = models.TextField(blank=True)
     timestamp = models.DateTimeField(default=now)
     status = models.CharField(max_length=20, default='completed')
+    balance_after = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
     def save(self, *args, **kwargs):
         profile = self.user.userprofile
