@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Verify USDT Payment</h2>
+<p>Enter the transaction details to verify your USDT payment.</p>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="transaction_id" placeholder="Transaction ID" required>
+    <button type="submit">Verify Payment</button>
+</form>
+{% endblock %}

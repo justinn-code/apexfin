@@ -8,6 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
+    {% load static %}
+
+    <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="#">ApexFin Analytics</a>
@@ -25,27 +28,31 @@
         </div>
     </nav>
 
+    <!-- Hero Section -->
     <header class="hero text-center text-white d-flex flex-column justify-content-center align-items-center">
         <div class="container">
             <h1 class="display-4">Invest Smart, Grow Your Wealth</h1>
             <p class="lead">ApexFin Analytics provides cutting-edge financial insights and investment opportunities.</p>
-            
-            <!-- Fixed "Get Started" Button -->
-            <a href="/signup" class="btn btn-lg btn-light mt-3" id="get-started-btn">Get Started</a>
-            <p class="mt-2"><a href="/login" class="text-white">Already have an account? Login here.</a></p>
+            <!-- Updated "Get Started" and "Login" Buttons -->
+            <a href="{% url 'users:signup' %}" class="btn btn-primary btn-lg shadow-lg mb-3">Get Started</a>
+            <p class="mt-2">
+                <a href="{% url 'users:login' %}" class="text-white">Already have an account? Login here.</a>
+            </p>
         </div>
     </header>
 
-    <section id="about" class="py-5 text-center">
+    <!-- About Section -->
+    <section id="about" class="py-5 text-center bg-light">
         <div class="container">
-            <h2>Why Choose ApexFin Analytics?</h2>
+            <h2 class="display-4">Why Choose ApexFin Analytics?</h2>
             <p class="lead">We provide advanced financial analytics, real-time investment tracking, and automated growth strategies.</p>
         </div>
     </section>
 
-    <section id="features" class="bg-light py-5 text-center">
+    <!-- Features Section -->
+    <section id="features" class="py-5 text-center">
         <div class="container">
-            <h2>Our Key Features</h2>
+            <h2 class="display-4">Our Key Features</h2>
             <div class="row mt-4">
                 <div class="col-md-4">
                     <h4>Real-Time Market Insights</h4>
@@ -63,27 +70,65 @@
         </div>
     </section>
 
-    <section id="pricing" class="py-5 text-center">
+    <!-- Pricing Section -->
+    <section id="pricing" class="bg-light py-5 text-center">
         <div class="container">
-            <h2>Pricing Plans</h2>
+            <h2 class="display-4">Pricing Plans</h2>
             <p class="lead">Choose a plan that fits your investment goals.</p>
+            <!-- Placeholder for Pricing Plans -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Basic Plan</h5>
+                            <p class="card-text">For beginners looking to start small.</p>
+                            <a href="#" class="btn btn-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Premium Plan</h5>
+                            <p class="card-text">For those seeking higher returns and more insights.</p>
+                            <a href="#" class="btn btn-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Elite Plan</h5>
+                            <p class="card-text">For expert investors with advanced strategies.</p>
+                            <a href="#" class="btn btn-primary">Learn More</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 
+    <!-- Contact Section -->
     <section id="contact" class="bg-light py-5 text-center">
-        <div class="container">
-            <h2>Contact Us</h2>
-            <p class="lead">Have questions? Reach out to our support team.</p>
+        <div class="container">         
+            <p class="lead">Have questions or need support? Reach out to our team at:</p>
+            <!-- Clickable Email -->
+            <p><a href="mailto:apexfinpro@outlook.com" class="btn btn-primary">apexfinpro@outlook.com</a></p>
         </div>
     </section>
 
+    <!-- Footer -->
     <footer class="bg-primary text-white text-center py-3">
         <p>&copy; 2025 ApexFin Analytics. All rights reserved.</p>
     </footer>
 
+    <!-- Styling -->
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
         }
         .hero {
             height: 90vh;
@@ -98,6 +143,16 @@
             font-size: 1.2rem;
         }
         .btn-light {
+            font-weight: bold;
+        }
+        .card {
+            border-radius: 15px;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        .card-title {
+            font-size: 1.25rem;
             font-weight: bold;
         }
     </style>

@@ -1,57 +1,168 @@
-{% extends "users/base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2>Send Funds</h2>
+<h2 class="mb-4">Send Funds</h2>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert {% if message.tags == 'success' %}alert-success{% else %}alert-danger{% endif %}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
+{% if cooldown_active %}
+    <div class="alert alert-warning">
+        <strong>Transaction Limit Reached!</strong> Please wait <span id="cooldown-timer">{{ cooldown_remaining }}</span> before sending funds again.
+    </div>
 
-    {% if transaction_count >= 3 and not cooldown_expired %}
-        <div class="alert alert-warning">
-            <strong>Capital funds exceed!</strong> You have reached the transaction limit.<br>
-            <strong>Cooldown Period:</strong> You must wait {{ cooldown_remaining|floatformat:0 }} seconds 
-            
-            {% with cooldown_remaining|divisibleby:3600 as hours %}
-                {% with cooldown_remaining|divisibleby:60 as minutes %}
-                    (<b>{{ hours }}h {{ minutes|slice:"1:" }}m</b>)
-                {% endwith %}
-            {% endwith %}
-            
-            before sending funds.
-        </div>
-    {% elif cooldown_expired %}
-        <div class="alert alert-danger">
-            <strong>Activation Required!</strong> Your cooldown has expired. You must activate <b>ApexFin Coin</b> before sending funds again.
-            <br>
-            <a href="{% url 'users:activate_apexfin_coin' %}" class="btn btn-primary mt-3">Activate ApexFin Coin</a>
-        </div>
-    {% else %}
-        <form method="post" action="{% url 'users:send_funds' %}">
+    <script>
+        function startCooldownTimer() {
+            let timerElement = document.getElementById("cooldown-timer");
+            let timeLeft = parseInt(timerElement.textContent, 10); // Time in seconds
+
+            function update() {
+                if (timeLeft > 0) {
+                    timeLeft -= 1;
+                    let hours = Math.floor(timeLeft / 3600);
+                    let minutes = Math.floor((timeLeft % 3600) / 60);
+                    let seconds = timeLeft % 60;
+
+                    // Ensure double-digit formatting
+                    timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+                    setTimeout(update, 1000);
+                } else {
+                    location.reload(); // Refresh when cooldown ends
+                }
+            }
+
+            update(); // Start the timer
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            startCooldownTimer();
+        });
+    </script>
+
+{% elif requires_activation %}
+    <div class="alert alert-info">
+        <strong>Activation Required!</strong> You need to activate investment profit before sending funds.
+        <span id="activation-timer">{{ activation_remaining }}</span> hours left to activate.
+    </div>
+
+    <script>
+        function startActivationTimer() {
+            let timerElement = document.getElementById("activation-timer");
+            let timeLeft = parseInt(timerElement.textContent, 10) * 3600; // Convert hours to seconds
+
+            function update() {
+                if (timeLeft > 0) {
+                    timeLeft -= 1;
+                    let hours = Math.floor(timeLeft / 3600);
+                    let minutes = Math.floor((timeLeft % 3600) / 60);
+                    let seconds = timeLeft % 60;
+
+                    timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    setTimeout(update, 1000);
+                } else {
+                    location.reload();
+                }
+            }
+
+            update();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            startActivationTimer();
+        });
+    </script>
+
+    <a href="{% url 'users:activate_profit_investment' %}" class="btn btn-warning">Activate Now</a>
+
+{% elif requires_conversion %}
+    <div class="alert alert-info">
+        <strong>Balance Conversion Required!</strong> Convert your ApexFin Coin to fiat first.
+    </div>
+    <a href="{% url 'convert_to_fiat' %}" class="btn btn-info">Convert Balance</a>
+
+{% else %}
+    <div class="card shadow-sm p-4 bg-white rounded">
+        <form method="post" id="sendFundsForm">
             {% csrf_token %}
-            <div class="mb-3">
-                <label for="recipient_name" class="form-label">Recipient Name</label>
-                <input type="text" class="form-control" id="recipient_name" name="recipient_name" required>
-            </div>
-            <div class="mb-3">
-                <label for="recipient_account" class="form-label">Recipient Account Number</label>
-                <input type="text" class="form-control" id="recipient_account" name="recipient_account" required>
-            </div>
-            <div class="mb-3">
-                <label for="amount" class="form-label">Amount (USD)</label>
-                <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
-            </div>
-            <div class="mb-3">
-                <label for="narration" class="form-label">Narration (Optional)</label>
-                <input type="text" class="form-control" id="narration" name="narration">
-            </div>
-            <button type="submit" class="btn btn-primary">Send Funds</button>
+
+            <label>Recipient Account Number:</label>
+            <input type="text" name="recipient_account" id="recipient_account" class="form-control mb-3" required>
+
+            <label>Recipient Name:</label>
+            <input type="text" id="recipient_name" class="form-control mb-3" readonly>
+
+            <label>Amount:</label>
+            <input type="number" name="amount" id="amount" class="form-control mb-3" required>
+
+            <label>Narration (Optional):</label>
+            <input type="text" name="narration" id="narration" class="form-control mb-3">
+
+            <button type="submit" class="btn btn-primary mt-3">Send Funds</button>
         </form>
-    {% endif %}
-</div>
+
+        <!-- Loading Spinner -->
+        <div id="loading-spinner" style="display:none;">
+            <img src="loading-spinner.gif" alt="Processing..."/>
+        </div>
+
+        <!-- Transaction Status Message -->
+        <div id="transactionMessage" class="mt-3 text-center"></div>
+    </div>
+{% endif %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const accountInput = document.getElementById("recipient_account");
+        const nameField = document.getElementById("recipient_name");
+        const sendFundsForm = document.getElementById("sendFundsForm");
+        const transactionMessage = document.getElementById("transactionMessage");
+        const loadingSpinner = document.getElementById("loading-spinner");
+
+        accountInput.addEventListener("blur", function () {
+            let accountNumber = this.value.trim();
+            if (accountNumber !== "") {
+                fetch(`/users/get-recipient-name/?account_number=${accountNumber}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        nameField.value = data.success ? data.recipient_name : "Invalid Account";
+                    })
+                    .catch(error => console.error("Error:", error));
+            }
+        });
+
+        sendFundsForm.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            // Show spinner and hide message
+            loadingSpinner.style.display = "block";
+            transactionMessage.style.display = "none";
+
+            let formData = new FormData(sendFundsForm);
+
+            fetch("{% url 'users:send_funds' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = "none"; // Hide spinner
+                if (data.success) {
+                    transactionMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    sendFundsForm.reset();
+                } else {
+                    transactionMessage.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                }
+                transactionMessage.style.display = "block"; // Show message
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                loadingSpinner.style.display = "none"; // Hide spinner
+                transactionMessage.innerHTML = `<div class="alert alert-danger">There was an error processing the transaction.</div>`;
+                transactionMessage.style.display = "block"; // Show message
+            });
+        });
+    });
+</script>
+
 {% endblock %}

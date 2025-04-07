@@ -1,15 +1,29 @@
-{% extends "users/base.html" %}
+{% extends "base.html" %}  <!-- Use this if it's in the global templates directory -->
+
 
 {% block title %}Login - ApexFin Analytics{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
     <h2>Login to Your Account</h2>
+
+    <!-- Display error messages -->
+    {% if messages %}
+        <div class="alert alert-danger">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit" class="btn btn-primary">Login</button>
     </form>
-    <p>Don't have an account? <a href="{% url 'users:signup' %}">Sign Up</a></p>
+
+    <p>Don't have an account? 
+        <a href="{% url 'users:signup' %}">Sign Up</a>
+    </p>
 </div>
 {% endblock %}

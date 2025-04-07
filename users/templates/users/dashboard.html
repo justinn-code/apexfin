@@ -1,105 +1,142 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - ApexFin Analytics</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .dashboard-container {
-            max-width: 900px;
-            margin: auto;
-            padding: 20px;
-        }
-        .user-info {
-            background: #6A0DAD;
-            color: white;
-            padding: 20px;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .transactions {
-            margin-top: 20px;
-        }
-        .transactions table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .transactions th, .transactions td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-        .transactions th {
-            background: #6A0DAD;
-            color: white;
-        }
-        .btn-custom {
-            background: #6A0DAD;
-            color: white;
-            padding: 10px 15px;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <div class="user-info">
-            <h2>Welcome, {{ user_name }}</h2>
-            <p><strong>Account Number:</strong> {{ account_number }}</p>
-            <p><strong>Balance:</strong> ${{ balance }}</p>
-            <p><strong>Investment Profit:</strong> ${{ investment_profit }}</p>
-        </div>
+{% extends 'base.html' %}
 
-        {% if not cooldown_expired %}
-            <div class="alert alert-warning mt-3">
-                Capital funds exceed limit! Try again in <span id="cooldown-timer">{{ cooldown_remaining|floatformat:0 }}</span> seconds.
-            </div>
-            <script>
-                let cooldownTime = {{ cooldown_remaining|floatformat:0 }};
-                function updateTimer() {
-                    if (cooldownTime > 0) {
-                        document.getElementById("cooldown-timer").innerText = cooldownTime;
-                        cooldownTime--;
-                        setTimeout(updateTimer, 1000);
-                    } else {
-                        location.reload();
-                    }
-                }
-                updateTimer();
-            </script>
-        {% endif %}
+{% block content %}
+<style>
+  .dashboard-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  .user-info {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  .user-info h2 {
+    font-size: 24px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .user-info p {
+    font-size: 16px;
+    margin: 8px 0;
+    word-wrap: break-word;
+  }
+  .alert {
+    padding: 16px;
+    margin-top: 20px;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+  .alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  .alert-info {
+    background-color: #cce5ff;
+    color: #004085;
+  }
+  .alert-primary {
+    background-color: #d1ecf1;
+    color: #0c5460;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 20px;
+    font-size: 15px;
+    border-radius: 8px;
+    text-decoration: none;
+    margin: 6px 4px;
+    color: white;
+    transition: background-color 0.3s ease;
+  }
+  .btn-success { background-color: #28a745; }
+  .btn-primary { background-color: #007bff; }
+  .btn-info { background-color: #17a2b8; }
+  .btn-warning { background-color: #ffc107; color: black; }
+  .btn-danger { background-color: #dc3545; }
 
-        <div class="transactions">
-            <h3>Your Transactions</h3>
-            <table>
-                <tr>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                </tr>
-                {% for transaction in transactions %}
-                <tr>
-                    <td>{{ transaction.transaction_type }}</td>
-                    <td>${{ transaction.amount }}</td>
-                    <td>{{ transaction.timestamp }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="3">No transactions yet.</td>
-                </tr>
-                {% endfor %}
-            </table>
-        </div>
+  @media (max-width: 600px) {
+    .user-info {
+      padding: 16px;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+    }
+  }
+</style>
 
-        <div class="text-center mt-4">
-            <a href="{% url 'users:send_funds' %}" class="btn-custom">Send Funds</a>
-            <a href="{% url 'users:logout' %}" class="btn btn-danger">Logout</a>
-        </div>
+<div class="dashboard-container mt-5">
+  <div class="user-info">
+    <h2>Welcome, {{ user.username }}</h2>
+    <p><strong>Account Number:</strong> {{ account_number }}</p>
+    <p><strong>Balance:</strong> ${{ balance }}</p>
+    <p><strong>Investment Profit (ApexFin Coin):</strong> ${{ investment_profit }}</p>
+
+    <!-- Cooldown Message -->
+    {% if in_cooldown %}
+      <div class="alert alert-warning text-center mt-4">
+        ⚠️ Capital funds exceeded!<br>
+        Try again in: <span id="cooldown-timer"></span>
+      </div>
+      <script>
+        const endTime = new Date("{{ cooldown_end }}").getTime();
+        const countdown = document.getElementById('cooldown-timer');
+        setInterval(function () {
+          const now = new Date().getTime();
+          const timeLeft = endTime - now;
+          const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+          countdown.innerHTML = `${hours}h ${minutes}m ${seconds}s`;
+          if (timeLeft < 0) countdown.innerHTML = "Cooldown complete! Refresh the page.";
+        }, 1000);
+      </script>
+    {% endif %}
+
+    <!-- Activation Required -->
+    {% if user_profile.transaction_count >= 3 and not user_profile.is_activated %}
+      <div class="alert alert-info text-center">
+        🚀 <strong>Activate your ApexFin Coin Investment</strong><br>
+        Activation Fee: 1% = ${{ activation_fee }}<br>
+        <a href="{% url 'users:activate_apexfin_coin' %}" class="btn btn-warning mt-2">Activate Now</a>
+      </div>
+    {% endif %}
+
+    <!-- Convert to Fiat -->
+    {% if user_profile.is_activated and requires_conversion %}
+      <div class="alert alert-primary text-center">
+        💱 Convert ApexFin Coin to fiat<br>
+        Conversion Fee: 3% = ${{ conversion_fee }}<br>
+        <a href="{% url 'users:convert_to_fiat' %}" class="btn btn-info mt-2">Convert to Fiat</a>
+      </div>
+    {% endif %}
+
+
+    <!-- Action Buttons -->
+    <div class="text-center mt-4">
+      <a href="{% url 'users:send_funds' %}" class="btn btn-success">Send Funds</a>
+      <a href="{% url 'users:receive_funds' %}" class="btn btn-primary">Receive Funds</a>
+      <a href="{% url 'users:transaction_history' %}" class="btn btn-info">Transaction History</a>
+      <a href="{% url 'users:logout' %}" class="btn btn-danger">Logout</a>
     </div>
-</body>
-</html>
+
+    <!-- Display Location Information -->
+    {% if user_location %}
+      <div class="alert alert-info text-center mt-4">
+        <strong>Your last access location:</strong><br>
+        City: {{ user_location.city }}<br>
+        Country: {{ user_location.country }}<br>
+        Region: {{ user_location.region }}
+      </div>
+    {% else %}
+      <div class="alert alert-warning text-center mt-4">
+        No location data available.
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

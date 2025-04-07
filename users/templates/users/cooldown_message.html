@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Cooldown Period</h2>
+<p><strong>Capital funds exceeded!</strong> You have reached the maximum of 3 transactions. Please wait for <strong>{{ cooldown_time }}</strong> before making another transaction.</p>
+<p>To continue sooner, consider activating your investment profit.</p>
+<a href="{% url 'activate_profit_investment' %}">Activate Profit Investment</a>
+{% endblock %}

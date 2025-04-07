@@ -1,39 +1,180 @@
-{% extends 'base.html' %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaction History</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f7fc;
+      margin: 0;
+      padding: 20px;
+    }
 
-{% block content %}
-<div class="container mt-5">
-    <h2 class="text-center mb-4">Transaction History</h2>
-    <div class="card p-4">
-        {% if transactions %}
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Type</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for transaction in transactions %}
-                    <tr>
-                        <td>{{ transaction.timestamp|date:"F j, Y, g:i a" }}</td>
-                        <td>{{ transaction.transaction_type|capfirst }}</td>
-                        <td>${{ transaction.amount }}</td>
-                        <td>
-                            {% if transaction.status == 'completed' %}
-                                <span class="badge bg-success">Completed</span>
-                            {% else %}
-                                <span class="badge bg-warning">Pending</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <p class="text-center">No transactions found.</p>
+    h2 {
+      text-align: center;
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+    }
+
+    /* Desktop Table View */
+    .table-container {
+      display: block;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 15px;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+      font-size: 0.95rem;
+    }
+
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    .status-Success {
+      color: #28a745;
+      font-weight: bold;
+    }
+
+    .status-Failed {
+      color: #e74c3c;
+      font-weight: bold;
+    }
+
+    .transaction-type {
+      font-weight: bold;
+    }
+
+    /* Mobile Card View - Hidden by default on desktop */
+    .card-container {
+      display: none;
+    }
+
+    /* Card Styles */
+    .txn-card {
+      background-color: #ffffff;
+      border-left: 6px solid #6c63ff;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      padding: 16px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+    }
+
+    .txn-label {
+      font-weight: 600;
+      font-size: 1rem;
+      color: #333;
+    }
+
+    .txn-date {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .txn-note {
+      font-size: 0.9rem;
+      color: #444;
+      margin-top: 4px;
+    }
+
+    .no-txn {
+      text-align: center;
+      color: #888;
+      margin-top: 2rem;
+    }
+
+    /* Responsive Switch */
+    @media (max-width: 768px) {
+      .table-container {
+        display: none;
+      }
+
+      .card-container {
+        display: block;
+        padding: 0 10px;
+      }
+
+      h2 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>Transaction History</h2>
+
+  <!-- Desktop Table -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Amount</th>
+          <th>Counterparty</th>
+          <th>Narration</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for txn in transaction_history %}
+          <tr>
+            <td>{{ txn.timestamp|date:"F j, Y, g:i a" }}</td>
+            <td><span class="transaction-type">{{ txn.label }}</span></td>
+            <td>₦{{ txn.amount }}</td>
+            <td>{{ txn.counterparty }}</td>
+            <td>{{ txn.narration|default:"—" }}</td>
+            <td class="status-{{ txn.status }}">{{ txn.status }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" style="text-align:center; color: #888;">No transactions found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Card View -->
+  <div class="card-container">
+    {% for txn in transaction_history %}
+      <div class="txn-card">
+        <div class="txn-label">{{ txn.label }} — ₦{{ txn.amount }}</div>
+        <div><strong>With:</strong> {{ txn.counterparty }}</div>
+        {% if txn.narration %}
+          <div class="txn-note"><strong>Note:</strong> {{ txn.narration }}</div>
         {% endif %}
-    </div>
-</div>
-{% endblock %}
+        <div class="txn-date">{{ txn.timestamp|date:"M d, Y · h:i A" }}</div>
+        <div class="txn-note" style="color: {% if txn.status == 'Success' %}#28a745{% else %}#e74c3c{% endif %};"><strong>Status:</strong> {{ txn.status }}</div>
+      </div>
+    {% empty %}
+      <p class="no-txn">No transactions found.</p>
+    {% endfor %}
+  </div>
+</body>
+</html>
+

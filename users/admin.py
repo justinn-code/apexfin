@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserProfile, Transaction
+from .models import UserProfile, Transaction, UserLocation
 
 class TransactionAdmin(admin.ModelAdmin):
     list_display = ("user", "amount", "transaction_type", "timestamp")  # Show in admin table
@@ -8,5 +8,6 @@ class TransactionAdmin(admin.ModelAdmin):
 
 admin.site.register(UserProfile)
 admin.site.register(Transaction, TransactionAdmin)
+admin.site.register(UserLocation)
 
 # Register your models here.

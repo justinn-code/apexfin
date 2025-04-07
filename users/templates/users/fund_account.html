@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Fund Your Account</h2>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Fund Account</button>
+</form>
+{% endblock %}

@@ -175,3 +175,62 @@ body {
 .cta .btn:hover {
     background: #f4f4f4;
 }
+
+/* === Mobile Responsiveness === */
+@media screen and (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    padding: 10px 20px;
+    text-align: center;
+  }
+
+  .navbar a {
+    display: block;
+    margin: 8px 0;
+  }
+
+  .hero {
+    flex-direction: column;
+    padding: 40px 20px;
+    text-align: center;
+  }
+
+  .hero img {
+    width: 90%;
+    margin-top: 20px;
+  }
+
+  .features {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .feature {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .pricing-card {
+    width: 90%;
+    margin: 20px auto;
+  }
+
+  .faq-item {
+    width: 90%;
+  }
+
+  .testimonials {
+    padding: 30px 15px;
+  }
+
+  .testimonial {
+    width: 90%;
+    display: block;
+    margin: 20px auto;
+  }
+
+  .cta {
+    padding: 30px 15px;
+  }
+}
+

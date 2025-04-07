@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>All Users</h2>
+<ul>
+    {% for user in users %}
+    <li>{{ user.user.username }} - Balance: {{ user.balance }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
