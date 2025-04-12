@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
 {% block content %}
 <style>
@@ -73,10 +74,9 @@
   <div class="user-info">
     <h2>Welcome, {{ user.username }}</h2>
     <p><strong>Account Number:</strong> {{ account_number }}</p>
-    <p><strong>Balance:</strong> ${{ balance }}</p>
-    <p><strong>Investment Profit (ApexFin Coin):</strong> ${{ investment_profit }}</p>
+    <p><strong>Balance:</strong> ${{ balance|floatformat:2|intcomma }}</p>
+    <p><strong>Investment Profit (ApexFin Coin):</strong> ${{ investment_profit|floatformat:2|intcomma }}</p>
 
-    <!-- Cooldown Message -->
     {% if in_cooldown %}
       <div class="alert alert-warning text-center mt-4">
         ⚠️ Capital funds exceeded!<br>
@@ -97,25 +97,22 @@
       </script>
     {% endif %}
 
-    <!-- Activation Required -->
     {% if user_profile.transaction_count >= 3 and not user_profile.is_activated %}
       <div class="alert alert-info text-center">
         🚀 <strong>Activate your ApexFin Coin Investment</strong><br>
-        Activation Fee: 1% = ${{ activation_fee }}<br>
+        Activation Fee: 1% = ${{ activation_fee|floatformat:2|intcomma }}<br>
         <a href="{% url 'users:activate_apexfin_coin' %}" class="btn btn-warning mt-2">Activate Now</a>
       </div>
     {% endif %}
 
-    <!-- Convert to Fiat -->
     {% if user_profile.is_activated and requires_conversion %}
       <div class="alert alert-primary text-center">
         💱 Convert ApexFin Coin to fiat<br>
-        Conversion Fee: 3% = ${{ conversion_fee }}<br>
+        Conversion Fee: 3% = ${{ conversion_fee|floatformat:2|intcomma }}<br>
         <a href="{% url 'users:convert_to_fiat' %}" class="btn btn-info mt-2">Convert to Fiat</a>
       </div>
     {% endif %}
 
-    <!-- Action Buttons -->
     <div class="text-center mt-4">
       <a href="{% url 'users:send_funds' %}" class="btn btn-success">Send Funds</a>
       <a href="{% url 'users:receive_funds' %}" class="btn btn-primary">Receive Funds</a>
@@ -125,3 +122,4 @@
   </div>
 </div>
 {% endblock %}
+

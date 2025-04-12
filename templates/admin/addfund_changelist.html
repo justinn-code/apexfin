@@ -1,0 +1,7 @@
+{% extends "admin/change_list.html" %}
+{% block object-tools %}
+    <div>
+        <a href="{% url 'admin:review-fund-requests' %}" class="button">🪙 Review Add Fund Requests</a>
+    </div>
+    {{ block.super }}
+{% endblock %}

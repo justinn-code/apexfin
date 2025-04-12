@@ -1,0 +1,132 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Funds</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f7fc;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            font-size: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            color: white;
+            background-color: #007bff;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+
+        .alert-info {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Add Funds to Your Account</h2>
+
+        <!-- Alert messages if needed -->
+        {% if message %}
+            <div class="alert alert-info">
+                {{ message }}
+            </div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="payment_method">Select Payment Method</label>
+                <select id="payment_method" name="payment_method" required>
+                    <option value="">Select Method</option>
+                    <option value="gift_card">Gift Card</option>
+                    <option value="bank_transfer">Bank Transfer</option>
+                    <option value="crypto">Crypto (USDT)</option>
+                </select>
+            </div>
+
+            <!-- Gift Card Option -->
+            <div id="gift_card_fields" class="form-group" style="display:none;">
+                <label for="gift_card_code">Gift Card Code</label>
+                <input type="text" id="gift_card_code" name="gift_card_code" placeholder="Enter Gift Card Code" required>
+                <label for="gift_card_image">Gift Card Image</label>
+                <input type="file" id="gift_card_image" name="gift_card_image" accept="image/*">
+            </div>
+
+            <!-- Bank Transfer Option -->
+            <div id="bank_transfer_fields" class="form-group" style="display:none;">
+                <label for="bank_details">Bank Transfer Details</label>
+                <textarea id="bank_details" name="bank_details" rows="4" placeholder="Enter Bank Details"></textarea>
+            </div>
+
+            <!-- Crypto Option -->
+            <div id="crypto_fields" class="form-group" style="display:none;">
+                <label for="crypto_wallet_address">Crypto Wallet Address</label>
+                <input type="text" id="crypto_wallet_address" name="crypto_wallet_address" placeholder="Enter Crypto Wallet Address" required>
+            </div>
+
+            <div class="form-group">
+                <label for="amount">Amount (USD)</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="1" required placeholder="Enter Amount to Add">
+            </div>
+
+            <button type="submit" class="btn">Submit</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('payment_method').addEventListener('change', function() {
+            const paymentMethod = this.value;
+            document.getElementById('gift_card_fields').style.display = (paymentMethod === 'gift_card') ? 'block' : 'none';
+            document.getElementById('bank_transfer_fields').style.display = (paymentMethod === 'bank_transfer') ? 'block' : 'none';
+            document.getElementById('crypto_fields').style.display = (paymentMethod === 'crypto') ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>

