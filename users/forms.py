@@ -31,9 +31,28 @@ class SendFundsForm(forms.Form):
 
 
 class AddFundForm(forms.ModelForm):
+    # Added field to handle payment options for USDT or Gift Card
+    PAYMENT_METHOD_CHOICES = [
+        ('usdt', 'USDT'),
+        ('gift_card', 'Gift Card'),
+    ]
+    
+    payment_method = forms.ChoiceField(choices=PAYMENT_METHOD_CHOICES, label="Payment Method")
+    amount = forms.DecimalField(label="Amount", min_value=1, decimal_places=2)
+    gift_card_code = forms.CharField(required=False, label="Gift Card Code", max_length=50)
+    gift_card_image = forms.ImageField(required=False, label="Gift Card Image")
+    bank_details = forms.CharField(required=False, label="Bank Details", max_length=100)
+    crypto_wallet_address = forms.CharField(required=False, label="Crypto Wallet Address", max_length=100)
+
     class Meta:
         model = AddFundRequest
         fields = ['payment_method', 'amount', 'gift_card_code', 'gift_card_image', 'bank_details', 'crypto_wallet_address']
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount <= Decimal("0.00"):
+            raise forms.ValidationError("Amount must be greater than zero.")
+        return amount
 
 
 class ReceiveFundsForm(forms.Form):

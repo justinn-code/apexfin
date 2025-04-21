@@ -1,12 +1,14 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager
-from django.utils.timezone import now
-from datetime import timedelta
-from decimal import Decimal
 import random
+from decimal import Decimal
+from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import AbstractUser, BaseUserManager, User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.core.exceptions import ValidationError
+from django.utils.timezone import now
+from datetime import timedelta
+from django.utils import timezone
 
 
 # Function to generate a unique account number
@@ -92,32 +94,36 @@ def create_user_profile(sender, instance, created, **kwargs):
 def save_user_profile(sender, instance, **kwargs):
     """Save the UserProfile instance after the CustomUser is saved."""
     # Ensure the profile is created if it doesn't exist
-    instance.profile.save()
+    profile, created = UserProfile.objects.get_or_create(user=instance)
+    profile.save()
 
-
+# Transaction Model
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
         ("credit", "Credit"),
         ("debit", "Debit"),
         ("withdrawal", "Withdrawal"),
     ]
+    TRANSACTION_STATUSES = [
+        ('completed', 'Completed'),
+        ('pending', 'Pending'),
+        ('failed', 'Failed'),
+    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    sender_name = models.CharField(max_length=255, blank=True)
-    sender_account = models.CharField(max_length=10, blank=True)
-    recipient_name = models.CharField(max_length=255, blank=True)
-    recipient_account = models.CharField(max_length=10, blank=True)
+    sender_name = models.CharField(max_length=255, blank=True, null=True)
+    sender_account = models.CharField(max_length=10, blank=True, null=True)
+    recipient_name = models.CharField(max_length=255, blank=True, null=True)
+    recipient_account = models.CharField(max_length=10, blank=True, null=True)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
-    narration = models.TextField(blank=True)
-    timestamp = models.DateTimeField(default=now)
-    status = models.CharField(max_length=20, default='completed')
-    balance_after = models.DecimalField(default=0, max_digits=10, decimal_places=2)
+    narration = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(default=timezone.now)
+    status = models.CharField(max_length=20, choices=TRANSACTION_STATUSES, default='completed')
+    balance_after = models.DecimalField(default=0, max_digits=15, decimal_places=2)
 
     def save(self, *args, **kwargs):
-        # Access the profile correctly
         profile, _ = UserProfile.objects.get_or_create(user=self.user)
-
 
         if self.transaction_type == "debit":
             if profile.requires_activation():
@@ -181,3 +187,58 @@ class AddFundRequest(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.payment_method.title()} - ${self.amount:,.2f}"
+
+
+# Custom Validator for Gift Card Code
+def validate_gift_card_code(value):
+    """Ensure gift card code is alphanumeric and between 10-15 characters."""
+    if not value.isalnum():
+        raise ValidationError("Gift card code must be alphanumeric.")
+    if len(value) < 10 or len(value) > 15:
+        raise ValidationError("Gift card code must be between 10 and 15 characters long.")
+
+
+# GiftCard Model
+class GiftCard(models.Model):
+    code = models.CharField(max_length=255, unique=True, validators=[validate_gift_card_code])
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    user = models.ForeignKey('UserProfile', on_delete=models.CASCADE)
+
+    def clean(self):
+        """Ensure the value of the gift card is greater than 0."""
+        if self.value <= Decimal("0.00"):
+            raise ValidationError("Gift card value must be greater than zero.")
+
+    def __str__(self):
+        return f"{self.code} - {self.value}"
+
+    # Optionally, you could add a method to check if the code is valid for redemption
+    def is_valid(self):
+        # For example, check if the card has been redeemed already (this would require a 'redeemed' field)
+        return True  # Replace with actual logic if needed
+
+
+class FiatConversionRequest(models.Model):
+    PAYMENT_METHOD_CHOICES = (
+        ('usdt', 'USDT'),
+        ('gift_card', 'Gift Card'),
+    )
+    
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    destination = models.TextField(help_text="Bank account or crypto wallet info")
+    narration = models.TextField(blank=True, null=True)
+    gas_fee_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
+    usdt_transaction_hash = models.CharField(max_length=100, blank=True, null=True)
+    gift_card_code = models.CharField(max_length=100, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Fiat Conversion - {self.user.username} - {self.amount}"

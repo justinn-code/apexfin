@@ -1,7 +1,7 @@
 {% extends "admin/base_site.html" %}
 
 {% block content %}
-  <div class="module" style="max-width: 800px; margin: 20px auto;">
+  <div class="module" style="max-width: 1000px; margin: 20px auto;">
     <h1 class="module-title">Review Add Fund Requests</h1>
 
     <table class="table table-striped">
@@ -10,7 +10,10 @@
           <th>ID</th>
           <th>User</th>
           <th>Amount</th>
+          <th>Method</th>
           <th>Status</th>
+          <th>Date</th>
+          <th>Gift Code</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -20,11 +23,20 @@
             <td>{{ request.id }}</td>
             <td>{{ request.user.username }}</td>
             <td>{{ request.amount }}</td>
+            <td>{{ request.payment_method|title }}</td>
             <td>{{ request.get_status_display }}</td>
+            <td>{{ request.created_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              {% if request.payment_method == 'gift_card' %}
+                {{ request.gift_card_code }}
+              {% else %}
+                —
+              {% endif %}
+            </td>
             <td>
               {% if request.status == 'pending' %}
-                <a href="{% url 'admin:approve-fund-request' request.id %}" class="button approve-button">Approve</a>
-                <a href="{% url 'admin:reject-fund-request' request.id %}" class="button reject-button">Reject</a>
+                <a href="{% url 'admin:approve-fund-request' request.id %}" class="button approve-button" onclick="return confirm('Are you sure you want to approve this fund request?');">Approve</a>
+                <a href="{% url 'admin:reject-fund-request' request.id %}" class="button reject-button" onclick="return confirm('Are you sure you want to reject this fund request?');">Reject</a>
               {% else %}
                 <span class="badge">{{ request.status }}</span>
               {% endif %}
@@ -47,6 +59,7 @@
     padding: 8px 16px;
     text-decoration: none;
     border-radius: 5px;
+    margin-right: 5px;
   }
   .approve-button:hover {
     background-color: #45a049;
@@ -68,6 +81,7 @@
   }
   .actions {
     margin-top: 20px;
+    text-align: center;
   }
   .actions .button {
     margin-top: 10px;
@@ -78,4 +92,3 @@
     color: white;
   }
 </style>
-

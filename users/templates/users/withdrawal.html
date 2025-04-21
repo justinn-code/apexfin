@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="card shadow-lg p-4 rounded-4">
+        <h2 class="text-center text-primary mb-4">Withdrawal Request</h2>
+
+        <div class="alert alert-success text-center fw-semibold">
+            ✅ Your conversion to fiat was successful!
+        </div>
+
+        <p class="lead text-center mb-4">
+            Please complete the form below and email our team with your details to process your withdrawal.
+        </p>
+
+        <!-- Withdrawal Form -->
+        <form method="POST" id="withdrawal-form" class="mb-4">
+            {% csrf_token %}
+            <div class="form-group mb-3">
+                <label for="withdrawal_method" class="form-label"><strong>Withdrawal Method</strong></label>
+                <select name="withdrawal_method" id="withdrawal_method" class="form-control" required>
+                    <option value="">-- Select Method --</option>
+                    <option value="bank" {% if request.POST.withdrawal_method == 'bank' %}selected{% endif %}>Bank Transfer</option>
+                    <option value="crypto" {% if request.POST.withdrawal_method == 'crypto' %}selected{% endif %}>Crypto Wallet</option>
+                    <option value="paypal" {% if request.POST.withdrawal_method == 'paypal' %}selected{% endif %}>PayPal</option>
+                </select>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="withdrawal_amount" class="form-label"><strong>Amount</strong></label>
+                <input type="text" name="withdrawal_amount" id="withdrawal_amount" class="form-control" placeholder="Enter amount to withdraw" required value="{{ request.POST.withdrawal_amount }}">
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 mt-2">Confirm Details</button>
+        </form>
+
+        {% if sent_email %}
+        <div class="alert alert-success text-center mt-4">
+            🎉 Your withdrawal request has been sent! Our team will respond shortly.
+        </div>
+        {% endif %}
+
+        <!-- Contact Section -->
+        <div class="bg-light p-3 rounded-3 mt-4">
+            <h5 class="mb-3">📧 Send Withdrawal Email</h5>
+            <p>After confirming your details, send the following to our team:</p>
+
+            <a href="mailto:apexfinpro@outlook.com?subject=Withdrawal Request&body=Hello Team,%0D%0A%0D%0AI would like to request a withdrawal.%0D%0A%0D%0AHere are my details:%0D%0AFull Name: {{ request.user.get_full_name }}%0D%0AUsername: {{ request.user.username }}%0D%0AAccount Number: {{ request.user.userprofile.account_number }}%0D%0APreferred Withdrawal Method: {{ request.POST.withdrawal_method }}%0D%0AWithdrawal Amount: {{ request.POST.withdrawal_amount }}%0D%0AAdditional Notes: [Insert here]%0D%0A%0D%0AThank you." 
+               class="btn btn-outline-primary mt-2">
+                Send Email to apexfinpro@outlook.com
+            </a>
+        </div>
+
+        <!-- Email Instructions -->
+        <div class="mt-5">
+            <h5 class="mb-3">📋 What to include in your email:</h5>
+            <ul class="list-group">
+                <li class="list-group-item">✅ Full Name</li>
+                <li class="list-group-item">✅ Username</li>
+                <li class="list-group-item">✅ Account Number</li>
+                <li class="list-group-item">✅ Preferred Withdrawal Method</li>
+                <li class="list-group-item">✅ Withdrawal Amount</li>
+                <li class="list-group-item">✅ Any additional message</li>
+            </ul>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center mt-5">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

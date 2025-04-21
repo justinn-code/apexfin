@@ -1,43 +1,78 @@
-# utils.py
+import os
 import requests
 from decimal import Decimal
+from .models import GiftCard
 
-def verify_usdt_payment(transaction_id, expected_amount):
-    tron_scan_api = f"https://api.tronscan.org/api/transaction-info?hash={transaction_id}"
+def check_usdt_payment(user, expected_amount, transaction_id):
+    """
+    Strictly verifies USDT (TRC20) payment using TronScan API.
+    Checks:
+      - Transaction is confirmed
+      - Token is USDT
+      - Correct recipient address
+      - Amount is enough
+    """
+    tron_api = f"https://apilist.tronscanapi.com/api/transaction-info?hash={transaction_id}"
+
+    YOUR_RECEIVING_WALLET = TK9MzgkdryfdVJy6UfHeU6mv1yhESnbKYT
 
     try:
-        response = requests.get(tron_scan_api)
-        if response.status_code == 200:
-            data = response.json()
+        response = requests.get(tron_api)
+        response.raise_for_status()
+        data = response.json()
 
-            # Adjust this extraction according to the TronScan API response structure
-            confirmed_amount = Decimal(data.get("amount", "0")) / Decimal("1000000")  # Convert from SUN to TRX
-            if confirmed_amount >= expected_amount:
-                return True
+        if not data.get("confirmed", False):
+            print("[USDT] Transaction not yet confirmed.")
+            return False
+
+        contract_data = data.get("contractData", {})
+        amount = Decimal(data.get("amount", 0)) / Decimal("1000000")
+        recipient = contract_data.get("to_address")
+        token_info = data.get("tokenInfo", {})
+        token_name = token_info.get("tokenName", "")
+
+        if token_name == "USDT" and recipient == YOUR_RECEIVING_WALLET and amount >= expected_amount:
+            return True
+        else:
+            print(f"[USDT] Invalid: token={token_name}, recipient={recipient}, amount={amount}")
+            return False
+
     except Exception as e:
-        print(f"Error verifying payment: {e}")
-
-    return False
-
+        print(f"[USDT] Error verifying payment: {e}")
+        return False
 
 
-def validate_gift_card(gift_card_type, gift_card_code):
+
+def check_gift_card_payment(user, expected_amount, gift_card_code):
+    try:
+        gift_card = GiftCard.objects.get(code=gift_card_code, is_used=False)
+
+        if Decimal(gift_card.value) >= expected_amount:
+            return True
+        else:
+            print(f"[Gift Card] Card value too low: {gift_card.value} < {expected_amount}")
+            return False
+    except GiftCard.DoesNotExist:
+        print("[Gift Card] Invalid or already used code.")
+        return False
+
+
+def save_uploaded_file(uploaded_file, folder="tmp_uploads"):
     """
-    Function to validate a gift card code.
-    This should either manually check the card in your database
-    or integrate with an external API to verify the card's balance.
-
-    :param gift_card_type: Type of the gift card (e.g., "Amazon", "Google Play")
-    :param gift_card_code: The unique code from the gift card
-    :return: True if valid, False otherwise
+    Saves the uploaded file to a temporary folder (safe for Fly.io).
+    Returns the saved file path or None on error.
     """
-    # Placeholder logic for validation. Implement your logic here.
-    
-    # Example: If the gift card is Amazon and the code is valid
-    if gift_card_type == "amazon" and gift_card_code == "VALID_AMAZON_CODE":
-        return True
-    elif gift_card_type == "google_play" and gift_card_code == "VALID_GOOGLE_PLAY_CODE":
-        return True
-    # Implement further gift card validation logic (or an API call) here.
-    
-    return False
+    try:
+        os.makedirs(f"/tmp/{folder}", exist_ok=True)
+        file_path = os.path.join("/tmp", folder, uploaded_file.name)
+
+        with open(file_path, 'wb+') as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+
+        print(f"[File Upload] Saved to {file_path}")
+        return file_path
+
+    except Exception as e:
+        print(f"[File Upload] Error saving file: {e}")
+        return None

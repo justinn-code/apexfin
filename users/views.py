@@ -4,7 +4,7 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import models
-from .models import UserProfile, Transaction, AddFundRequest  # Your models
+from .models import UserProfile, Transaction, AddFundRequest, GiftCard, FiatConversionRequest  # Your models
 from .forms import SendFundsForm, ReceiveFundsForm, ConvertToFiatForm, AddFundForm
 from django.contrib.admin.views.decorators import staff_member_required  # For admin views
 from django.http import JsonResponse
@@ -19,6 +19,12 @@ from decimal import Decimal
 from django.conf import settings
 import os
 from django.http import HttpResponse
+from .utils import check_usdt_payment, check_gift_card_payment, save_uploaded_file # Ensure these are imported correctly
+from django.core.files.storage import default_storage
+from django.views.decorators.csrf import csrf_exempt  # only if needed
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
+from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
@@ -246,28 +252,54 @@ def activate_profit_investment(request):
 
 # -------------------- Addd Funds --------------------
 @login_required
-def add_funds(request):
+def add_funds_view(request):
     if request.method == 'POST':
         form = AddFundForm(request.POST, request.FILES)
+        
         if form.is_valid():
-            add_fund = form.save(commit=False)
-            add_fund.user = request.user
-            add_fund.status = 'pending'
-            add_fund.save()
+            fund_request = form.save(commit=False)
+            fund_request.user = request.user
 
-            # Message for user
-            if add_fund.payment_method == 'gift_card':
-                messages.info(request, "Gift card submitted. Await admin approval.")
-            elif add_fund.payment_method == 'bank_transfer':
-                messages.info(request, "Bank transfer details submitted. Await admin review.")
-            elif add_fund.payment_method == 'crypto':
-                messages.info(request, "Awaiting automatic verification of your crypto transfer...")
+            if fund_request.payment_method == 'gift_card':
+                code = fund_request.gift_card_code
+                if not code:
+                    messages.error(request, "Please provide a valid gift card code.")
+                    return redirect('add_funds')
 
-            # Redirect after post
-            return redirect('add_funds')
+                try:
+                    gift_card = GiftCard.objects.get(code=code)
+                    fund_request.amount = gift_card.value
+                    fund_request.save()
+                    messages.success(request, "Gift card submitted. Awaiting admin approval.")
+                except GiftCard.DoesNotExist:
+                    messages.error(request, "Invalid gift card code.")
+                    return redirect('add_funds')
+
+            elif fund_request.payment_method == 'crypto':
+                if not fund_request.crypto_wallet_address:
+                    messages.error(request, "Please provide your USDT wallet address.")
+                    return redirect('add_funds')
+
+                fund_request.save()
+                messages.success(request, "Crypto funding request submitted. It will be verified soon.")
+
+            elif fund_request.payment_method == 'bank_transfer':
+                if not fund_request.bank_details:
+                    messages.error(request, "Please enter your bank transfer details.")
+                    return redirect('add_funds')
+
+                fund_request.save()
+                messages.success(request, "Bank transfer request submitted.")
+
+            else:
+                messages.error(request, "Unknown payment method selected.")
+                return redirect('add_funds')
+
+            return redirect('dashboard')
     else:
         form = AddFundForm()
-    return render(request, 'add_funds.html', {'form': form})
+
+    return render(request, 'dashboard/add_funds.html', {'form': form})
 
 
 # -------------------- Send Funds --------------------
@@ -276,7 +308,12 @@ def send_funds(request):
     sender = request.user
     sender_profile = get_object_or_404(UserProfile, user=sender)
 
-    # Check if the user has completed 3 debit transactions
+    # 🚫 Block sending if user has converted to fiat — redirect to withdrawal page
+    if sender_profile.is_converted:
+        messages.info(request, "You've already converted to fiat. Please proceed to withdrawal.")
+        return redirect('withdrawal')
+
+    # ⏱️ Cooldown logic after 3 debit transactions
     if sender_profile.debit_transaction_count >= 3:
         if not sender_profile.cooldown_start:
             sender_profile.cooldown_start = timezone.now()
@@ -296,7 +333,7 @@ def send_funds(request):
                     'requires_activation': True,
                 })
 
-    # Handle fund transfer after checking cooldown/activation
+    # 💸 Handle fund transfer
     if request.method == "POST":
         recipient_account = request.POST.get("recipient_account")
         amount = request.POST.get("amount")
@@ -306,19 +343,17 @@ def send_funds(request):
             amount = Decimal(amount)
             if amount <= 0:
                 return JsonResponse({"success": False, "error": "Invalid amount"}, status=400)
-        except ValueError:
+        except:
             return JsonResponse({"success": False, "error": "Amount must be a number"}, status=400)
 
         if sender_profile.balance < amount:
             return JsonResponse({"success": False, "error": "Insufficient funds"}, status=400)
 
-        # Ensure recipient exists
         recipient_profile = UserProfile.objects.filter(unique_account_number=recipient_account).first()
         if not recipient_profile:
             return JsonResponse({"success": False, "error": "Recipient not found"}, status=404)
 
         try:
-            # Process transaction inside atomic block
             with transaction.atomic():
                 sender_profile.balance -= amount
                 recipient_profile.balance += amount
@@ -326,8 +361,8 @@ def send_funds(request):
                 sender_profile.save()
                 recipient_profile.save()
 
-                # Sender's transaction record (Debited)
-                Transaction.objects.create(
+                # Save Sender Transaction
+                sender_txn = Transaction(
                     user=sender,
                     sender_name=sender.get_full_name(),
                     sender_account=sender_profile.unique_account_number,
@@ -340,9 +375,10 @@ def send_funds(request):
                     status="completed",
                     balance_after=sender_profile.balance,
                 )
+                sender_txn.save()  # triggers your model's validation
 
-                # Recipient's transaction record (Credited)
-                Transaction.objects.create(
+                # Save Recipient Transaction
+                recipient_txn = Transaction(
                     user=recipient_profile.user,
                     sender_name=sender.get_full_name(),
                     sender_account=sender_profile.unique_account_number,
@@ -355,13 +391,17 @@ def send_funds(request):
                     status="completed",
                     balance_after=recipient_profile.balance,
                 )
+                recipient_txn.save()
 
-                # If 3 debit transactions are completed, start cooldown
+                # Start cooldown if this was the 3rd transaction
                 if sender_profile.debit_transaction_count >= 3:
                     sender_profile.cooldown_start = timezone.now()
                     sender_profile.save()
 
                 return JsonResponse({"success": True, "message": "Transaction successful!"}, status=200)
+
+        except ValueError as ve:
+            return JsonResponse({"success": False, "error": str(ve)}, status=400)
 
         except Exception as e:
             return JsonResponse({"success": False, "error": f"Error processing transaction: {str(e)}"}, status=500)
@@ -371,7 +411,6 @@ def send_funds(request):
         'cooldown_remaining': None,
         'activation_required': False,
     })
-
 
 #----------------------Recipiet Name---------------------
 @login_required
@@ -474,86 +513,138 @@ def transaction_history(request):
 
     return render(request, 'users/transaction_history.html', {'transaction_history': history})
 
-#---------------------Activatin Profit Investment----------
+# ---------------- Utility Functions ----------------
+
+def save_uploaded_file(file, filename):
+    path = os.path.join(settings.MEDIA_ROOT, filename)
+    with default_storage.open(path, 'wb+') as destination:
+        for chunk in file.chunks():
+            destination.write(chunk)
+
+def check_usdt_payment(user, activation_fee, transaction_id):
+    # TODO: Replace with actual TronScan API verification
+    return True  # Currently always returns True
+
+def check_gift_card_payment(user, activation_fee, gift_card_code):
+    # TODO: Replace with actual logic to verify gift card balance/validity
+    return True  # Currently always returns True
+
+#---------------Activation of Profit---------------------
 @login_required
 def activate_profit_investment(request):
-    user = request.user  # Get the logged-in user
-    try:
-        # Access the profile related to the user
-        user_profile = user.profile
-    except UserProfile.DoesNotExist:
-        # If the user doesn't have a profile, create it
-        user_profile = UserProfile.objects.create(user=user)
-        print(f"Created profile for {user.username}")  # Debugging line (optional)
+    user = request.user
+    profile = user.userprofile
+    activation_fee = round(profile.balance * Decimal("0.01"), 2)
 
-    # Calculate the activation fee (1% of the user's balance)
-    activation_fee = user_profile.balance * 0.01
+    # ✅ If activated but not yet confirmed conversion, show confirmation
+    if profile.is_activated and not profile.has_converted:
+        if request.method == "POST" and request.POST.get("confirm_conversion") == "true":
+            profile.has_converted = True
+            profile.save()
+            return JsonResponse({"success": True, "message": "✅ Conversion confirmed! You can now send funds."})
 
-    # Check if the user has activated the profit investment
-    if user_profile.is_activated:
-        return HttpResponse("Your account is already activated.", status=200)
+        # Show conversion confirmation template
+        return render(request, "users/confirm_conversion.html", {
+            "user_profile": profile,
+            "support_email": "apexfinpro@outlook.com"
+        })
 
-    # Add your activation logic (e.g., marking the user as activated)
-    # You can also implement logic to handle cooldown periods
-    user_profile.is_activated = True
-    user_profile.save()
+    if request.method == "POST":
+        payment_method = request.POST.get("payment_method")
 
-    # Return a response to confirm the activation
-    return render(request, 'activate_profit_investment.html', {
-        'user_profile': user_profile,
-        'activation_fee': activation_fee,
+        # ✅ GIFT CARD HANDLER
+        if payment_method == "gift_card":
+            gift_card_code = request.POST.get("gift_card_code")
+            gift_card_image = request.FILES.get("gift_card_image")
+
+            if not gift_card_code:
+                return JsonResponse({"success": False, "message": "Gift card code is required."})
+
+            AddFundRequest.objects.create(
+                user=user,
+                payment_method='gift_card',
+                amount=activation_fee,
+                gift_card_code=gift_card_code,
+                gift_card_image=gift_card_image,
+                status='pending',
+                is_verified=False,
+            )
+
+            return JsonResponse({"success": True, "message": "🎁 Gift card submitted. Awaiting manual approval."})
+
+        # ✅ USDT HANDLER
+        elif payment_method == "usdt":
+            transaction_id = request.POST.get("transaction_id")
+            if not transaction_id:
+                return JsonResponse({"success": False, "message": "USDT transaction ID is required."})
+
+            try:
+                url = f"https://apilist.tronscanapi.com/api/transaction-info?hash={transaction_id}"
+                headers = {"TRON-PRO-API-KEY": settings.TRONSCAN_API_KEY}
+                response = requests.get(url, headers=headers)
+                data = response.json()
+
+                recipient = data.get("toAddress", "")
+                amount = int(data.get("tokenTransferInfo", {}).get("amount_str", 0)) / 10**6
+                confirmed = data.get("confirmed", False)
+
+                expected_wallet = settings.USDT_WALLET_ADDRESS
+
+                if confirmed and recipient.lower() == expected_wallet.lower() and Decimal(amount) >= activation_fee:
+                    profile.is_activated = True
+                    profile.save()
+
+                    AddFundRequest.objects.create(
+                        user=user,
+                        payment_method='crypto',
+                        amount=Decimal(amount),
+                        crypto_wallet_address=recipient,
+                        status='approved',
+                        is_verified=True,
+                    )
+
+                    # Redirect user to Convert to Fiat page after activation
+                    return redirect('convert_to_fiat')  # Replace with your actual URL name
+
+                else:
+                    return JsonResponse({"success": False, "message": "❌ Invalid or unconfirmed USDT transaction."})
+
+            except Exception as e:
+                print("USDT error:", e)
+                return JsonResponse({"success": False, "message": "❌ Unable to verify USDT transaction right now."})
+
+        return JsonResponse({"success": False, "message": "Please select a valid payment method."})
+
+    return render(request, "users/activate_profit_investment.html", {
+        "user_profile": profile,
+        "activation_fee": activation_fee,
+        "wallet_address": getattr(settings, "USDT_WALLET_ADDRESS", None),
+        "support_email": getattr(settings, "SUPPORT_EMAIL", "support@example.com"),  # fallback if not set
     })
 
-#---------------------Verification USDT payment------------
-def check_usdt_payment(user, gas_fee, transaction_id):
-    api_url = settings.TRONSCAN_API_URL
-    api_key = settings.TRONSCAN_API_KEY
-
-    try:
-        response = requests.get(
-            f"{api_url}?hash={transaction_id}&apikey={api_key}",
-            timeout=10  # Timeout to avoid long waits
-        )
-        response.raise_for_status()
-
-        transaction_data = response.json()
-
-        # Debugging: Print the response to verify
-        print("TronScan Response:", transaction_data)
-
-        # Assuming 'value' holds the amount sent in USDT
-        if transaction_data.get("confirmed") and transaction_data.get("value") >= float(gas_fee):
-            return True
-
-    except requests.exceptions.RequestException as e:
-        print("Error connecting to TronScan API:", e)
-
-    return False
-
-#---------------------Verification Gift Card payment------------
-def check_gift_card_payment(user, required_amount, gift_card_code):
-    try:
-        # Example: Check if the gift card code exists in the database and its value
-        gift_card = GiftCard.objects.get(code=gift_card_code)
-
-        # Check if the gift card value is sufficient
-        if gift_card.value >= required_amount:
-            return True
-
-    except GiftCard.DoesNotExist:
-        print("Gift card not found.")
-    
-    return False
 
 # -------------------- Convert to Fiat --------------------
 @login_required
 def convert_to_fiat(request):
     user_profile = request.user.userprofile
-    gas_fee = user_profile.investment_profit * Decimal("0.03")  # 3% of investment profit
+    
+    # Ensure the user has activated their investment and not already converted
+    if not user_profile.is_activated:
+        messages.error(request, "Please activate your investment first.")
+        return redirect('activate_profit_investment')  # Redirect to the activation page if not activated
+
+    if user_profile.is_converted:
+        messages.info(request, "You have already converted your investment. You can proceed with withdrawals.")
+        return redirect('withdrawal')  # Redirect to withdrawal page if already converted
+
+    # Calculate 3% gas fee on investment profit
+    gas_fee = user_profile.investment_profit * Decimal("0.03")
 
     if request.method == "POST":
-        payment_method = request.POST.get("payment_method")
-        
+        payment_method = request.POST.get("payment_method_selected")
+        destination = request.POST.get("destination")
+        narration = request.POST.get("narration", "")
+
         # If Payment Method is USDT
         if payment_method == "usdt":
             transaction_id = request.POST.get("transaction_id")
@@ -564,10 +655,21 @@ def convert_to_fiat(request):
                 transaction_verified = check_usdt_payment(request.user, gas_fee, transaction_id)
 
                 if transaction_verified:
+                    # Create a FiatConversionRequest record for USDT payment
+                    FiatConversionRequest.objects.create(
+                        user=request.user,
+                        amount=user_profile.investment_profit,
+                        destination=destination,
+                        narration=narration,
+                        gas_fee_method="usdt",
+                        usdt_transaction_hash=transaction_id,
+                        status="approved"
+                    )
                     user_profile.is_converted = True
                     user_profile.save()
-                    messages.success(request, "Conversion to fiat successful! You can now resume transactions.")
-                    return redirect('dashboard')
+                    messages.success(request, "Conversion to fiat successful! You can now proceed with withdrawals.")
+                    return redirect('withdrawal')  # Redirect to withdrawal page
+
                 else:
                     messages.error(request, "Payment verification failed. Please try again.")
 
@@ -584,11 +686,21 @@ def convert_to_fiat(request):
                 gift_card_valid = validate_gift_card(gift_card_type, gift_card_code)
 
                 if gift_card_valid:
-                    # Assuming the gift card amount matches the gas fee (this logic can be expanded)
+                    # Create a FiatConversionRequest record for Gift Card payment
+                    FiatConversionRequest.objects.create(
+                        user=request.user,
+                        amount=user_profile.investment_profit,
+                        destination=destination,
+                        narration=narration,
+                        gas_fee_method="gift_card",
+                        gift_card_code=gift_card_code,
+                        status="approved"
+                    )
                     user_profile.is_converted = True
                     user_profile.save()
-                    messages.success(request, f"Gift Card payment successful! You can now resume transactions.")
-                    return redirect('dashboard')
+                    messages.success(request, "Gift Card payment successful! You can now proceed with withdrawals.")
+                    return redirect('withdrawal')  # Redirect to withdrawal page
+
                 else:
                     messages.error(request, "Gift Card verification failed. Please try again.")
 
@@ -596,6 +708,7 @@ def convert_to_fiat(request):
         "gas_fee": gas_fee,
         "wallet_address": settings.USDT_WALLET_ADDRESS,
     })
+
 
 # -------------------- All Users View --------------------
 @login_required
@@ -609,3 +722,63 @@ def cooldown_message(request):
     profile = UserProfile.objects.get(user=request.user)
     cooldown_remaining = (profile.cooldown_start + timedelta(hours=36) - now()).total_seconds() // 3600 if profile.cooldown_start else 0
     return render(request, 'users/cooldown_message.html', {'cooldown_remaining': cooldown_remaining})
+# --------------------Withdrawal View -----------------------
+@login_required
+def withdrawal_view(request):
+    user_profile = request.user.userprofile
+
+    # Optional: Check if user has completed conversion
+    if not user_profile.is_converted:
+        messages.error(request, "You need to convert to fiat before accessing the withdrawal page.")
+        return redirect('convert_to_fiat')
+
+    # List of valid withdrawal methods
+    valid_methods = ['Bank', 'Crypto', 'PayPal']
+
+    if request.method == "POST":
+        # Retrieve the chosen withdrawal method and amount
+        withdrawal_method = request.POST.get("withdrawal_method")
+        withdrawal_amount = request.POST.get("withdrawal_amount")
+        
+        # Check if both method and amount are provided
+        if not withdrawal_method or not withdrawal_amount:
+            messages.error(request, "Please provide both withdrawal method and amount.")
+        
+        # Validate if the method is valid
+        elif withdrawal_method not in valid_methods:
+            messages.error(request, f"Invalid withdrawal method. Choose one of the following: {', '.join(valid_methods)}.")
+        
+        # Validate if the withdrawal amount is a valid number and doesn't exceed the available balance
+        elif not withdrawal_amount.isdigit() or Decimal(withdrawal_amount) <= 0:
+            messages.error(request, "Please enter a valid withdrawal amount greater than zero.")
+        
+        elif Decimal(withdrawal_amount) > user_profile.investment_profit:
+            messages.error(request, "You cannot withdraw more than your available investment profit.")
+        
+        else:
+            # Send email to support team with the withdrawal details
+            email_body = f"""
+            Hello Team,
+
+            I would like to request a withdrawal. Here are my details:
+
+            Full Name: {request.user.get_full_name()}
+            Username: {request.user.username}
+            Account Number: {request.user.userprofile.account_number}
+            Preferred Withdrawal Method: {withdrawal_method}
+            Withdrawal Amount: {withdrawal_amount}
+
+            Thank you.
+            """
+            send_mail(
+                subject="Withdrawal Request",
+                message=email_body,
+                from_email=request.user.email,
+                recipient_list=["apexfinpro@outlook.com"],
+            )
+            
+            # Optionally, mark the request as sent for UI feedback
+            messages.success(request, "Your withdrawal request has been sent successfully! Our team will process it shortly.")
+            return render(request, "users/withdrawal.html", {"sent_email": True})
+
+    return render(request, "users/withdrawal.html")

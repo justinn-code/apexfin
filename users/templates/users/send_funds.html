@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h2 class="mb-4">Send Funds</h2>
+<h2 class="mb-4 text-center">Send Funds</h2>
 
 {% if cooldown_active %}
     <div class="alert alert-warning">
-        <strong>Transaction Limit Reached!</strong> Please wait <span id="cooldown-timer">{{ cooldown_remaining }}</span> before sending funds again.
+        <strong>Oops!</strong> You’ve reached your transaction limit. Please wait <span id="cooldown-timer">{{ cooldown_remaining }}</span> before sending funds again.
     </div>
 
     <script>
@@ -20,27 +20,23 @@
                     let minutes = Math.floor((timeLeft % 3600) / 60);
                     let seconds = timeLeft % 60;
 
-                    // Ensure double-digit formatting
                     timerElement.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
                     setTimeout(update, 1000);
                 } else {
                     location.reload(); // Refresh when cooldown ends
                 }
             }
 
-            update(); // Start the timer
+            update();
         }
 
-        document.addEventListener("DOMContentLoaded", function () {
-            startCooldownTimer();
-        });
+        document.addEventListener("DOMContentLoaded", startCooldownTimer);
     </script>
 
 {% elif requires_activation %}
     <div class="alert alert-info">
-        <strong>Activation Required!</strong> You need to activate investment profit before sending funds.
-        <span id="activation-timer">{{ activation_remaining }}</span> hours left to activate.
+        <strong>Hang tight!</strong> You need to activate your investment profit before sending funds. 
+        <span id="activation-timer">{{ activation_remaining }}</span> hours remaining to activate.
     </div>
 
     <script>
@@ -65,42 +61,50 @@
             update();
         }
 
-        document.addEventListener("DOMContentLoaded", function () {
-            startActivationTimer();
-        });
+        document.addEventListener("DOMContentLoaded", startActivationTimer);
     </script>
 
-    <a href="{% url 'users:activate_profit_investment' %}" class="btn btn-warning">Activate Now</a>
+    <a href="{% url 'users:activate_profit_investment' %}" class="btn btn-warning w-100">Activate Now</a>
 
-{% elif requires_conversion %}
+{% elif not user.userprofile.is_converted %}
     <div class="alert alert-info">
-        <strong>Balance Conversion Required!</strong> Convert your ApexFin Coin to fiat first.
+        <strong>Almost there!</strong> Please convert your ApexFin Coin to fiat first.
     </div>
-    <a href="{% url 'convert_to_fiat' %}" class="btn btn-info">Convert Balance</a>
+    <a href="{% url 'users:convert_to_fiat' %}" class="btn btn-info w-100">Convert Balance</a>
 
 {% else %}
     <div class="card shadow-sm p-4 bg-white rounded">
         <form method="post" id="sendFundsForm">
             {% csrf_token %}
 
-            <label>Recipient Account Number:</label>
-            <input type="text" name="recipient_account" id="recipient_account" class="form-control mb-3" required>
+            <div class="form-group mb-3">
+                <label for="recipient_account">Recipient Account Number:</label>
+                <input type="text" name="recipient_account" id="recipient_account" class="form-control" required placeholder="">
+            </div>
 
-            <label>Recipient Name:</label>
-            <input type="text" id="recipient_name" class="form-control mb-3" readonly>
+            <div class="form-group mb-3">
+                <label for="recipient_name">Recipient Name:</label>
+                <input type="text" id="recipient_name" class="form-control" readonly placeholder="">
+            </div>
 
-            <label>Amount:</label>
-            <input type="number" name="amount" id="amount" class="form-control mb-3" required>
+            <div class="form-group mb-3">
+                <label for="amount">Amount:</label>
+                <input type="number" name="amount" id="amount" class="form-control" required placeholder="">
+            </div>
 
-            <label>Narration (Optional):</label>
-            <input type="text" name="narration" id="narration" class="form-control mb-3">
+            <div class="form-group mb-3">
+                <label for="narration">Narration (Optional):</label>
+                <input type="text" name="narration" id="narration" class="form-control" placeholder="">
+            </div>
 
-            <button type="submit" class="btn btn-primary mt-3">Send Funds</button>
+            <button type="submit" class="btn btn-primary w-100 mt-3">Send Funds</button>
         </form>
 
         <!-- Loading Spinner -->
-        <div id="loading-spinner" style="display:none;">
-            <img src="loading-spinner.gif" alt="Processing..."/>
+        <div id="loading-spinner" style="display:none;" class="text-center mt-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Processing...</span>
+            </div>
         </div>
 
         <!-- Transaction Status Message -->
@@ -122,7 +126,13 @@
                 fetch(`/users/get-recipient-name/?account_number=${accountNumber}`)
                     .then(response => response.json())
                     .then(data => {
-                        nameField.value = data.success ? data.recipient_name : "Invalid Account";
+                        if (data.success) {
+                            nameField.value = data.recipient_name;
+                            nameField.classList.remove("is-invalid");
+                        } else {
+                            nameField.value = "Invalid Account";
+                            nameField.classList.add("is-invalid");
+                        }
                     })
                     .catch(error => console.error("Error:", error));
             }
@@ -131,7 +141,6 @@
         sendFundsForm.addEventListener("submit", function (event) {
             event.preventDefault();
 
-            // Show spinner and hide message
             loadingSpinner.style.display = "block";
             transactionMessage.style.display = "none";
 
@@ -146,20 +155,21 @@
             })
             .then(response => response.json())
             .then(data => {
-                loadingSpinner.style.display = "none"; // Hide spinner
+                loadingSpinner.style.display = "none";
                 if (data.success) {
                     transactionMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
                     sendFundsForm.reset();
+                    nameField.value = "";
                 } else {
                     transactionMessage.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
                 }
-                transactionMessage.style.display = "block"; // Show message
+                transactionMessage.style.display = "block";
             })
             .catch(error => {
                 console.error("Error:", error);
-                loadingSpinner.style.display = "none"; // Hide spinner
-                transactionMessage.innerHTML = `<div class="alert alert-danger">There was an error processing the transaction.</div>`;
-                transactionMessage.style.display = "block"; // Show message
+                loadingSpinner.style.display = "none";
+                transactionMessage.innerHTML = `<div class="alert alert-danger">Oops! Something went wrong while processing your transaction.</div>`;
+                transactionMessage.style.display = "block";
             });
         });
     });

@@ -107,6 +107,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 USDT_WALLET_ADDRESS = config("USDT_WALLET_ADDRESS")
 TRONSCAN_API_KEY = config("TRONSCAN_API_KEY")
 TRONSCAN_API_URL = "https://api.tronscan.org/api/transaction-info"
+SUPPORT_EMAIL = config("SUPPORT_EMAIL", default="apexfinpro@outlook.com")
+
 
 # ✅ Logging Configuration
 LOGS_DIR = os.path.join(BASE_DIR, "logs")
@@ -121,11 +123,15 @@ LOGGING = {
             "class": "logging.FileHandler",
             "filename": os.path.join(LOGS_DIR, "django.log"),
         },
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+        },
     },
     "loggers": {
         "django": {
-            "handlers": ["file"],
-            "level": "ERROR",
+            "handlers": ["file", "console"],
+            "level": "DEBUG",  # Log all messages for development
             "propagate": True,
         },
     },

